@@ -8,7 +8,12 @@ const keypairseed = process.env.KEY_PAIR_SEED;
 const keypair = Ed25519Keypair.fromSeed(Uint8Array.from(Buffer.from(keypairseed!, 'hex')));
 const signer = new RawSigner( keypair, provider );
 
-async function publish(): Promise<string> {
+interface PublishResult {
+  medalModuleId: string,
+  medalStoreId: string,
+}
+
+async function publish(): Promise<PublishResult> {
   const compiledModules = JSON.parse(
     execSync(
       `sui move build --dump-bytecode-as-base64 --path .`,
@@ -20,24 +25,17 @@ async function publish(): Promise<string> {
     gasBudget: 10000,
   });
   console.log('publishTxn', publishTxn);
-  return publishTxn.effects.created![0].reference.objectId
+  const medalModuleId = publishTxn.effects.created![0].reference.objectId
+  const medalStoreId = publishTxn.effects.created![1].reference.objectId
+  return {
+    medalModuleId,
+    medalStoreId,
+  }
 }
 
-async function interact_with_medal(medalModuleId: string) {
-  // create medal_store
-  // this should be called by admin, and save the result `medalStoreId` for app config
-  const createMedalStoreTxn = await signer.executeMoveCall({
-    packageObjectId: medalModuleId,
-    module: 'sui_medal',
-    function: 'create_medal_store',
-    typeArguments: [],
-    arguments: [],
-    gasBudget: 10000,
-  });
-  console.log('createMedalStoreTxn', createMedalStoreTxn);
-  const medalStoreId = createMedalStoreTxn.effects.created![0].reference.objectId
-  console.log(`medalStoreId: ${medalStoreId}`);
+async function interact_with_medal(params: PublishResult) {
   // create medal
+  const { medalModuleId, medalStoreId } = params;
   const createMedalTxn = await signer.executeMoveCall({
     packageObjectId: medalModuleId,
     module: 'sui_medal',
@@ -67,7 +65,6 @@ async function interact_with_medal(medalModuleId: string) {
     gasBudget: 10000,
   });
   console.log('claimMedalTxn', claimMedalTxn);
-  return medalStoreId
 }
 
 // medalModuleId and medalStoreId should be app config
@@ -103,10 +100,10 @@ async function main() {
   const objs = await provider.getObjectsOwnedByAddress('0x' + addr);
   console.log(`objects of ${addr} are ${JSON.stringify(objs, null, 2)}`);
 
-  const medalModuleId = await publish();
-  console.log(`medalModuleId: ${medalModuleId}`);
-  const medalStoreId = await interact_with_medal(medalModuleId);
-  console.log(`medalStoreId: ${medalStoreId}`);
+  const publishResult = await publish();
+  console.log(`PublishResult: ${JSON.stringify(publishResult, null, 2)}`);
+  await interact_with_medal(publishResult);
+  const { medalModuleId, medalStoreId } = publishResult;
   await queries(medalModuleId, medalStoreId, addr);
 }
 

@@ -33,7 +33,11 @@ module mynft::sui_medal {
         medal: ID,
     }
 
-    public entry fun create_medal_store(
+   fun init(ctx: &mut TxContext) {
+       create_medal_store(ctx)
+    }
+
+    fun create_medal_store(
         ctx: &mut TxContext,
     ) {
         let store = MedalStore {
