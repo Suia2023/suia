@@ -10,7 +10,8 @@ sui 0.9.0
 $ yarn install
 
 $ cp .env.example .env
-# edit .env KEY_PAIR_SEED
+# edit .env, replace KEY_PAIR_SEED with a random hex string
+# you can generate it with command `openssl rand -hex 32`
 
 # run demo
 $ yarn demo
