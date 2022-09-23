@@ -22,5 +22,9 @@ objects of b656b57eab3022ae8f644134aa4084a3b2c38ab6 are []
 error: Error: Error publishing package Error: RPC Error: No non-argument gas objects found with value >= budget 10000
 
 # you should get error like above
-# fund your account with devnet faucet: <https://docs.sui.io/build/devnet#request-gas-tokens> and try again
+# fund your account with devnet faucet: <https://docs.sui.io/build/devnet#request-gas-tokens>
+# and try again
+
+# check the explorer: <https://explorer.devnet.sui.io/addresses/0xb656b57eab3022ae8f644134aa4084a3b2c38ab6>
+# replace the address with your own
 ```
