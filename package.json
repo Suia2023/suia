@@ -1,0 +1,18 @@
+{
+  "name": "suimedal",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "huwenchao <me@huwenchao.com>",
+  "license": "MIT",
+  "scripts": {
+    "demo": "ts-node demo/demo.ts"
+  },
+  "dependencies": {
+    "@mysten/sui.js": "^0.10.0",
+    "dotenv": "^16.0.2"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.1",
+    "typescript": "^4.8.3"
+  }
+}

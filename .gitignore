@@ -6,3 +6,4 @@ output.bpl
 .trace
 boilerplate
 .task/
+node_modules/

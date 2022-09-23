@@ -9,3 +9,9 @@ tasks:
     sources:
       - sources/**/*.move
       - Move.toml
+  demo:
+    cmds:
+      - yarn ts-node demo/demo.ts
+    sources:
+      - demo/demo.ts
+      - .env
