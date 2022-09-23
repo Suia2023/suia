@@ -1,0 +1,11 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  test:
+    cmds:
+      - sui move test
+    sources:
+      - sources/**/*.move
+      - Move.toml

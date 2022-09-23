@@ -1,0 +1,8 @@
+sui.log.*
+.env
+build
+output.bpl
+.coverage_*
+.trace
+boilerplate
+.task/
