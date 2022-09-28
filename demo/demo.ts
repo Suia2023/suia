@@ -38,7 +38,7 @@ async function interact_with_medal(params: PublishResult) {
   const { medalModuleId, medalStoreId } = params;
   const createMedalTxn = await signer.executeMoveCall({
     packageObjectId: medalModuleId,
-    module: 'sui_medal',
+    module: 'suia',
     function: 'create_medal',
     typeArguments: [],
     arguments: [
@@ -56,7 +56,7 @@ async function interact_with_medal(params: PublishResult) {
   // claim medal
   const claimMedalTxn = await signer.executeMoveCall({
     packageObjectId: medalModuleId,
-    module: 'sui_medal',
+    module: 'suia',
     function: 'claim_medal',
     typeArguments: [],
     arguments: [
@@ -82,7 +82,7 @@ async function queries(medalModuleId: string, medalStoreId: string, userAddr: st
     cachedMedalDetails[medal] = (medalDetail.details as any).data.fields;
   }
   // query user medal gallery
-  const userMedals = (await provider.getObjectsOwnedByAddress(userAddr)).filter(obj => obj.type === `${medalModuleId}::sui_medal::PersonalMedal`);
+  const userMedals = (await provider.getObjectsOwnedByAddress(userAddr)).filter(obj => obj.type === `${medalModuleId}::suia::PersonalMedal`);
   console.log(`userMedals: ${JSON.stringify(userMedals, null, 2)}`);
   console.log(`cachedMedalDetails: ${JSON.stringify(cachedMedalDetails, null, 2)}`);
   for (const medal of userMedals) {

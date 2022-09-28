@@ -1,4 +1,4 @@
-module mynft::sui_medal {
+module mynft::suia {
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext};
     use std::string::{String, utf8};
