@@ -4,7 +4,7 @@
 # install sui cli: <https://docs.sui.io/build/install>
 # check sui installed
 $ sui -V
-sui 0.9.0
+sui 0.10.0
 
 # install dependencies
 $ yarn install
