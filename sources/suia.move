@@ -22,7 +22,7 @@ module mynft::suia {
         id: UID,
         name: String,
         description: String,
-        logo: String,
+        url: String,
         max_amount: u64,
         whitelist: VecSet<address>,
         owners: VecSet<address>,
@@ -30,6 +30,9 @@ module mynft::suia {
 
     struct PersonalMedal has key {
         id: UID,
+        name: String,
+        description: String,
+        url: String,
         medal: ID,
     }
 
@@ -53,14 +56,14 @@ module mynft::suia {
         description: vector<u8>,
         max_amount: u64,
         whitelist: vector<address>,
-        logo: vector<u8>,
+        url: vector<u8>,
         ctx: &mut TxContext,
     )  {
         let medal = Medal {
             id: object::new(ctx),
             name: utf8(name),
             description: utf8(description),
-            logo: utf8(logo),
+            url: utf8(url),
             max_amount,
             whitelist: vec_set::empty(),
             owners: vec_set::empty(),
@@ -87,6 +90,9 @@ module mynft::suia {
         let personal_medal = PersonalMedal {
             id: object::new(ctx),
             medal: object::uid_to_inner(&medal.id),
+            name: medal.name,
+            description: medal.description,
+            url: medal.url,
         };
         transfer::transfer(personal_medal, sender);
     }

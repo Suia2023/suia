@@ -3,8 +3,8 @@ name = "MyNFT"
 version = "0.1.0"
 
 [dependencies]
-# Sui = { local = "../sui/crates/sui-framework" }
-Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework", rev = "devnet-0.10.0" }
+Sui = { local = "../sui/crates/sui-framework" }
+#Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework", rev = "devnet-0.11.0" }
 
 [addresses]
 mynft = "0x0"

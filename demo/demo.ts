@@ -2,7 +2,7 @@ import { Ed25519Keypair, JsonRpcProvider, RawSigner } from '@mysten/sui.js';
 const { execSync } = require('child_process');
 require('dotenv').config()
 
-const provider = new JsonRpcProvider('https://gateway.devnet.sui.io:443');
+const provider = new JsonRpcProvider('https://fullnode.devnet.sui.io:443');
 const keypairseed = process.env.KEY_PAIR_SEED;
 // seed 32 bytes, private key 64 bytes
 const keypair = Ed25519Keypair.fromSeed(Uint8Array.from(Buffer.from(keypairseed!, 'hex')));
@@ -20,13 +20,13 @@ async function publish(): Promise<PublishResult> {
       { encoding: 'utf-8' }
     )
   );
-  const publishTxn = await signer.publish({
+  const publishTxn = await signer.publishWithRequestType({
     compiledModules,
     gasBudget: 10000,
   });
-  console.log('publishTxn', publishTxn);
-  const medalModuleId = publishTxn.effects.created![0].reference.objectId
-  const medalStoreId = publishTxn.effects.created![1].reference.objectId
+  console.log('publishTxn', JSON.stringify(publishTxn));
+  const medalModuleId = (publishTxn as any).EffectsCert.effects.effects.created![0].reference.objectId
+  const medalStoreId = (publishTxn as any).EffectsCert.effects.effects.created![1].reference.objectId
   return {
     medalModuleId,
     medalStoreId,
@@ -36,7 +36,7 @@ async function publish(): Promise<PublishResult> {
 async function interact_with_medal(params: PublishResult) {
   // create medal
   const { medalModuleId, medalStoreId } = params;
-  const createMedalTxn = await signer.executeMoveCall({
+  const createMedalTxn = await signer.executeMoveCallWithRequestType({
     packageObjectId: medalModuleId,
     module: 'suia',
     function: 'create_medal',
@@ -47,14 +47,14 @@ async function interact_with_medal(params: PublishResult) {
       'sui con 2022',
       100,
       [],
-      'ipfs://logo',
+      'https://api.nodes.guru/wp-content/uploads/2021/12/0pD8rO18_400x400.jpg',
     ],
     gasBudget: 10000,
   });
-  console.log('createMedalTxn', createMedalTxn);
-  const medalId = createMedalTxn.effects.created![0].reference.objectId
+  console.log('createMedalTxn', JSON.stringify(createMedalTxn));
+  const medalId = (createMedalTxn as any).EffectsCert.effects.effects.created![0].reference.objectId
   // claim medal
-  const claimMedalTxn = await signer.executeMoveCall({
+  const claimMedalTxn = await signer.executeMoveCallWithRequestType({
     packageObjectId: medalModuleId,
     module: 'suia',
     function: 'claim_medal',
@@ -64,7 +64,7 @@ async function interact_with_medal(params: PublishResult) {
     ],
     gasBudget: 10000,
   });
-  console.log('claimMedalTxn', claimMedalTxn);
+  console.log('claimMedalTxn', JSON.stringify(claimMedalTxn));
 }
 
 // medalModuleId and medalStoreId should be app config
@@ -105,6 +105,7 @@ async function main() {
   await interact_with_medal(publishResult);
   const { medalModuleId, medalStoreId } = publishResult;
   await queries(medalModuleId, medalStoreId, addr);
+  console.log('-----end-----');
 }
 
 main()
