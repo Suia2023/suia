@@ -8,6 +8,8 @@ const keypairseed = process.env.KEY_PAIR_SEED;
 const keypair = Ed25519Keypair.fromSeed(Uint8Array.from(Buffer.from(keypairseed!, 'hex')));
 const signer = new RawSigner( keypair, provider );
 
+const gasBudget = 100000;
+
 interface PublishResult {
   medalModuleId: string,
   medalStoreId: string,
@@ -24,9 +26,11 @@ async function publish(): Promise<PublishResult> {
     compiledModules,
     gasBudget: 10000,
   });
-  console.log('publishTxn', JSON.stringify(publishTxn));
-  const medalModuleId = (publishTxn as any).EffectsCert.effects.effects.created![0].reference.objectId
-  const medalStoreId = (publishTxn as any).EffectsCert.effects.effects.created![1].reference.objectId
+  console.log('publishTxn', JSON.stringify(publishTxn, null, 2));
+  const newObjectEvent = (publishTxn as any).EffectsCert.effects.effects.events.filter((e: any) => e.newObject !== undefined)[0].newObject;
+  console.log('newObjectEvent', JSON.stringify(newObjectEvent, null, 2));
+  const medalModuleId = newObjectEvent.packageId;
+  const medalStoreId = newObjectEvent.objectId;
   return {
     medalModuleId,
     medalStoreId,
@@ -43,8 +47,8 @@ async function interact_with_medal(params: PublishResult) {
     typeArguments: [],
     arguments: [
       medalStoreId,
-      'sui con',
-      'sui con 2022',
+      'Car',
+      'Car Description',
       100,
       [],
       'https://api.nodes.guru/wp-content/uploads/2021/12/0pD8rO18_400x400.jpg',
@@ -93,6 +97,41 @@ async function queries(medalModuleId: string, medalStoreId: string, userAddr: st
   }
 }
 
+async function claim(medalModuleId: string, medalId: string) {
+  const claimMedalTxn = await signer.executeMoveCallWithRequestType({
+    packageObjectId: medalModuleId,
+    module: 'suia',
+    function: 'claim_medal',
+    typeArguments: [],
+    arguments: [
+      medalId,
+    ],
+    gasBudget,
+  });
+  console.log('claimMedalTxn', JSON.stringify(claimMedalTxn));
+}
+
+async function create(medalModuleId: string, medalStoreId: string): Promise<string> {
+  const createMedalTxn = await signer.executeMoveCallWithRequestType({
+    packageObjectId: medalModuleId,
+    module: 'suia',
+    function: 'create_medal',
+    typeArguments: [],
+    arguments: [
+      medalStoreId,
+      'Car',
+      'Car Description',
+      100,
+      [],
+      'https://api.nodes.guru/wp-content/uploads/2021/12/0pD8rO18_400x400.jpg',
+    ],
+    gasBudget,
+  });
+  console.log('createMedalTxn', JSON.stringify(createMedalTxn));
+  const medalId = (createMedalTxn as any).EffectsCert.effects.effects.created![0].reference.objectId
+  return medalId;
+}
+
 async function main() {
   console.log('-----start-----');
   const addr = await signer.getAddress();
@@ -105,6 +144,11 @@ async function main() {
   await interact_with_medal(publishResult);
   const { medalModuleId, medalStoreId } = publishResult;
   await queries(medalModuleId, medalStoreId, addr);
+  // const medalStoreId = '0x5cb5ff2fc57b4e5c7dbdaaf387f91def71fe4b32';
+  // const medalModuleId = '0x32ee35c78f84c7d5b78e16c29e972a1b180a74b8';
+  // const medalId = '0xdd927b2cfe8f6f35a723742318859be5ce72f334'; // GM, SUI
+  // // await create(medalModuleId, medalStoreId);
+  // await claim(medalModuleId, medalId);
   console.log('-----end-----');
 }
 
