@@ -1,4 +1,12 @@
-# Quick Start
+# Suia
+
+![](https://suia.io/images/logo.041cb08a7cb597d5be0092d97bc0e2b8.png)
+
+> Collect your Suia in the Sui world
+
+Visit the product on Devnet @ <https://suia.io/>.
+
+## Development Quick Start
 
 ```bash
 # install sui cli: <https://docs.sui.io/build/install>
