@@ -7,3 +7,4 @@ output.bpl
 boilerplate
 .task/
 node_modules/
+.idea/
