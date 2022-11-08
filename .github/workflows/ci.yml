@@ -1,0 +1,21 @@
+name: ci
+
+on: ["push", "pull_request", "workflow_dispatch"]
+
+jobs:
+  test_and_demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: install sui bin
+        uses: supplypike/setup-bin@v1
+        with:
+          uri: 'https://github.com/MystenLabs/sui/releases/download/devnet-0.14.0/sui'
+          name: 'sui'
+          version: '0.14.0'
+      - name: Install Task
+        uses: arduino/setup-task@v1
+      - run: task test
+      - run: yarn install
+      - run: cp .env.example .env
+      - run: task demo

@@ -103,21 +103,21 @@ module mynft::suia {
         let publisher = @0xCAFE;
         let user = @0xBABE;
 
-        let scenario = &mut test_scenario::begin(&admin);
-        test_scenario::next_tx(scenario, &admin);
+        let scenario_val = test_scenario::begin(admin);
+        let scenario = &mut scenario_val;
+        test_scenario::next_tx(scenario, admin);
         {
             create_medal_store(test_scenario::ctx(scenario));
         };
-        test_scenario::next_tx(scenario, &publisher);
+        test_scenario::next_tx(scenario, publisher);
         {
-            let medal_store_wrapper = test_scenario::take_shared<MedalStore>(scenario);
-            let medal_store = test_scenario::borrow_mut(&mut medal_store_wrapper);
+            let medal_store = test_scenario::take_shared<MedalStore>(scenario);
             assert!(vector::is_empty(&medal_store.medals), 0);
 
             create_medal(
-                medal_store,
-                b"sui con",
-                b"sui con 2022",
+                &mut medal_store,
+                b"medal name",
+                b"medal description",
                 100,
                 vector::empty<address>(),
                 b"logo",
@@ -125,28 +125,27 @@ module mynft::suia {
             );
 
             assert!(vector::length(&medal_store.medals) == 1, 0);
-            test_scenario::return_shared(scenario, medal_store_wrapper);
+            test_scenario::return_shared(medal_store);
         };
-        test_scenario::next_tx(scenario, &user);
+        test_scenario::next_tx(scenario, user);
         {
-            let medal_wrapper = test_scenario::take_shared<Medal>(scenario);
-            let medal = test_scenario::borrow_mut(&mut medal_wrapper);
+            let medal = test_scenario::take_shared<Medal>(scenario);
             assert!(vec_set::size(&medal.owners) == 0, 0);
 
-            claim_medal(medal, test_scenario::ctx(scenario));
+            claim_medal(&mut medal, test_scenario::ctx(scenario));
 
             assert!(vec_set::size(&medal.owners) == 1, 0);
             assert!(vec_set::contains(&medal.owners, &user), 0);
-            test_scenario::return_shared(scenario, medal_wrapper);
+            test_scenario::return_shared(medal);
         };
-        test_scenario::next_tx(scenario, &user);
+        test_scenario::next_tx(scenario, user);
         {
-            let medal_wrapper = test_scenario::take_shared<Medal>(scenario);
-            let medal = test_scenario::borrow_mut(&mut medal_wrapper);
-            let personal_medal = test_scenario::take_owned<PersonalMedal>(scenario);
+            let medal = test_scenario::take_shared<Medal>(scenario);
+            let personal_medal = test_scenario::take_from_sender<PersonalMedal>(scenario);
             assert!(personal_medal.medal == object::uid_to_inner(&medal.id), 0);
-            test_scenario::return_shared(scenario, medal_wrapper);
-            test_scenario::return_owned(scenario, personal_medal);
-        }
+            test_scenario::return_shared(medal);
+            test_scenario::return_to_sender(scenario, personal_medal);
+        };
+        test_scenario::end(scenario_val);
     }
 }
