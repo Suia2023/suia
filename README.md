@@ -12,7 +12,7 @@ Visit the product on Devnet @ <https://suia.io/>.
 # install sui cli: <https://docs.sui.io/build/install>
 # check sui installed
 $ sui -V
-sui 0.14.0
+sui 0.15.1
 
 # install dependencies
 $ yarn install

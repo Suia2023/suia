@@ -10,9 +10,9 @@ jobs:
       - name: install sui bin
         uses: supplypike/setup-bin@v1
         with:
-          uri: 'https://github.com/MystenLabs/sui/releases/download/devnet-0.14.0/sui'
+          uri: 'https://github.com/MystenLabs/sui/releases/download/devnet-0.15.1/sui'
           name: 'sui'
-          version: '0.14.0'
+          version: '0.15.1'
       - name: Install Task
         uses: arduino/setup-task@v1
       - run: task test

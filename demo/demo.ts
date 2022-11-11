@@ -2,7 +2,7 @@ import { Ed25519Keypair, JsonRpcProvider, RawSigner } from '@mysten/sui.js';
 const { execSync } = require('child_process');
 require('dotenv').config()
 
-const provider = new JsonRpcProvider('https://fullnode.devnet.sui.io:443');
+const provider = new JsonRpcProvider(process.env.SUI_RPC_URL);
 const keypairseed = process.env.KEY_PAIR_SEED;
 // seed 32 bytes, private key 64 bytes
 const keypair = Ed25519Keypair.fromSeed(Uint8Array.from(Buffer.from(keypairseed!, 'hex')));
