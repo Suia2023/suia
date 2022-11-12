@@ -1,5 +1,5 @@
 import { Ed25519Keypair, JsonRpcProvider, RawSigner } from '@mysten/sui.js';
-const { execSync } = require('child_process');
+import * as fs from 'fs';
 require('dotenv').config()
 
 const provider = new JsonRpcProvider(process.env.SUI_RPC_URL);
@@ -16,12 +16,7 @@ interface PublishResult {
 }
 
 async function publish(): Promise<PublishResult> {
-  const compiledModules = JSON.parse(
-    execSync(
-      `sui move build --dump-bytecode-as-base64 --path .`,
-      { encoding: 'utf-8' }
-    )
-  );
+  const compiledModules = [fs.readFileSync('build/MyNFT/bytecode_modules/suia.mv', {encoding: 'base64'})];
   const publishTxn = await signer.publishWithRequestType({
     compiledModules,
     gasBudget: 10000,

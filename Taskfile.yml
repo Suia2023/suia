@@ -3,13 +3,21 @@
 version: '3'
 
 tasks:
+  build:
+    cmds:
+      - sui move build --skip-fetch-latest-git-deps
+    sources:
+      - sources/**/*.move
+      - Move.toml
   test:
     cmds:
-      - sui move test
+      - sui move test --skip-fetch-latest-git-deps
     sources:
       - sources/**/*.move
       - Move.toml
   demo:
+    deps:
+      - build
     cmds:
       - yarn ts-node demo/demo.ts
     sources:
