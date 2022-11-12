@@ -26,8 +26,8 @@ $ yarn demo
 yarn run v1.22.19
 $ ts-node demo/demo.ts
 -----start-----
-address: 0xbd0629c41d90c3c7918c4dee42829f900bfe2c13
-objects of 0xbd0629c41d90c3c7918c4dee42829f900bfe2c13 are []
+address: 0x8a4662abf9f8b7aa947b174f29a7a8f259e111e5
+objects of 0x8a4662abf9f8b7aa947b174f29a7a8f259e111e5 are []
 error: Error: Error publishing package Error: RPC Error: No non-argument gas objects found with value >= budget 10000
 
 # you should get error like above

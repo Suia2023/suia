@@ -2,17 +2,32 @@ name: ci
 
 on: ["push", "pull_request", "workflow_dispatch"]
 
+env:
+  VERSION: 0.15.1
+
 jobs:
   test_and_demo:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: install sui bin
-        uses: supplypike/setup-bin@v1
+      - name: Cache Binaries and move deps
+        id: cache
+        uses: actions/cache@v3
         with:
-          uri: 'https://github.com/MystenLabs/sui/releases/download/devnet-0.15.1/sui'
-          name: 'sui'
-          version: '0.15.1'
+          path: |
+            ~/.move
+            ~/bin
+            **/node_modules
+          key: ${{ runner.os }}-cache-${{ env.VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-cache-
+      - run: echo "${HOME}/bin" >> $GITHUB_PATH
+      - name: install sui bin
+        run: |
+          mkdir -p ~/bin
+          wget https://github.com/MystenLabs/sui/releases/download/devnet-${{ env.VERSION }}/sui -O ~/bin/sui
+          chmod +x ~/bin/sui
+        if: steps.cache.outputs.cache-hit != 'true'
       - name: Install Task
         uses: arduino/setup-task@v1
       - run: task test
