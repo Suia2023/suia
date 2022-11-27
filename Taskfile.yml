@@ -4,22 +4,38 @@ version: '3'
 
 tasks:
   build:
+    vars:
+      PACKAGE: '{{default "suia" .PACKAGE}}'
+    dir: ./move_packages/{{ .PACKAGE}}
     cmds:
-      - sui move build --skip-fetch-latest-git-deps
+      - sui move build --skip-fetch-latest-git-deps -d
     sources:
       - sources/**/*.move
       - Move.toml
   test:
+    vars:
+      PACKAGE: '{{default "suia" .PACKAGE}}'
+    dir: ./move_packages/{{ .PACKAGE}}
     cmds:
       - sui move test --skip-fetch-latest-git-deps
     sources:
       - sources/**/*.move
       - Move.toml
-  demo:
+  demo-suia:
     deps:
-      - build
+      - task: build
+        vars: {PACKAGE: "suia"}
     cmds:
       - yarn ts-node demo/demo.ts
     sources:
       - demo/demo.ts
+      - .env
+  demo-football-capy:
+    deps:
+      - task: build
+        vars: {PACKAGE: "suia_football_capy"}
+    cmds:
+      - yarn ts-node demo/suia_football_capy.ts
+    sources:
+      - demo/suia_football_capy.ts
       - .env

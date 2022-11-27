@@ -1,0 +1,12 @@
+[package]
+name = "MyNFT"
+version = "0.1.0"
+
+[dependencies]
+#Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework", rev = "devnet-0.15.1" }
+Sui = { local = "../../../sui/crates/sui-framework" }
+
+[addresses]
+#mynft = "0x0"
+mynft = "0x81afd6832d2ae685a221bf464b89544b7ab852ac"
+sui =  "0x2"

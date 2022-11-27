@@ -16,7 +16,7 @@ interface PublishResult {
 }
 
 async function publish(): Promise<PublishResult> {
-  const compiledModules = [fs.readFileSync('build/MyNFT/bytecode_modules/suia.mv', {encoding: 'base64'})];
+  const compiledModules = [fs.readFileSync('move_packages/suia/build/MyNFT/bytecode_modules/suia.mv', {encoding: 'base64'})];
   const publishTxn = await signer.publishWithRequestType({
     compiledModules,
     gasBudget: 10000,

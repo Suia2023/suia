@@ -1,0 +1,17 @@
+[package]
+name = "SuiaFootballCapy"
+version = "0.1.0"
+
+[dependencies]
+#Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework", rev = "devnet-0.15.1" }
+#sui-capybaras = { git = "https://github.com/MystenLabs/sui.git", subdir = "sui_programmability/examples/capy", rev = "devnet-0.15.1" }
+
+Sui = { local = "../../../sui/crates/sui-framework" }
+sui-capybaras = { local = "../../../sui/sui_programmability/examples/capy" }
+MyNFT = { local = "../suia" }
+
+[addresses]
+capy =  "0xfea7e09c8e07665037ed83871e32e4150c6f5b51"
+mynft = "0x81afd6832d2ae685a221bf464b89544b7ab852ac"
+suia_football_capy = "0x0"
+sui =  "0x2"
