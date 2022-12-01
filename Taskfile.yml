@@ -30,12 +30,12 @@ tasks:
     sources:
       - demo/demo.ts
       - .env
-  demo-football-capy:
+  demo-capy:
     deps:
       - task: build
-        vars: {PACKAGE: "suia_football_capy"}
+        vars: {PACKAGE: "suia_capy"}
     cmds:
-      - yarn ts-node demo/suia_football_capy.ts
+      - yarn ts-node demo/suia_capy.ts
     sources:
-      - demo/suia_football_capy.ts
+      - demo/suia_capy.ts
       - .env

@@ -19,7 +19,7 @@ interface PublishResult {
 }
 
 async function publish(): Promise<PublishResult> {
-  const compiledModules = [fs.readFileSync(`move_packages/suia_football_capy/build/SuiaFootballCapy/bytecode_modules/suia_football_capy.mv`, {encoding: 'base64'})];
+  const compiledModules = [fs.readFileSync(`move_packages/suia_capy/build/SuiaCapy/bytecode_modules/suia_capy.mv`, {encoding: 'base64'})];
   const publishTxn = await signer.publishWithRequestType({
     compiledModules,
     gasBudget,
@@ -85,54 +85,67 @@ async function capy_breed_and_keep(capy1: string, capy2: string): Promise<string
   return (tx as any).EffectsCert.effects.effects.created![0].reference.objectId;
 }
 
-// add metadata
-async function add_meta(
-  footballModuleId: string,
-  metaStoreId:string,
-  medalId: string,
+async function create_and_send_item(
+  suiaCapyModuleId: string,
+  capId:string,
+  type: string,
   name: string,
-  description: string,
-  url: string,
-): Promise<void> {
-  const tx = await signer.executeMoveCallWithRequestType({
-    packageObjectId: footballModuleId,
-    module: 'suia_football_capy',
-    function: 'add_meta',
-    typeArguments: [],
-    arguments: [
-      metaStoreId,
-      medalId,
-      name,
-      description,
-      url,
-    ],
-    gasBudget,
-  });
-  console.log('tx', JSON.stringify(tx, null, 2));
-}
-
-async function claim_football_suia_capy(
-  footballModuleId: string,
-  metaStoreId:string,
-  capyId: string,
-  medalId: string,
-  suiaId: string,
+  recipient: string,
 ): Promise<string> {
   const tx = await signer.executeMoveCallWithRequestType({
-    packageObjectId: footballModuleId,
-    module: 'suia_football_capy',
-    function: 'claim_football_suia_capy',
+    packageObjectId: suiaCapyModuleId,
+    module: 'suia_capy',
+    function: 'create_and_send_item',
     typeArguments: [],
     arguments: [
-      metaStoreId,
-      capyId,
-      medalId,
-      suiaId,
+      capId,
+      type,
+      name,
+      recipient,
     ],
     gasBudget,
   });
   console.log('tx', JSON.stringify(tx, null, 2));
   return (tx as any).EffectsCert.effects.effects.created![0].reference.objectId;
+}
+
+async function wrap_capy_with_item(
+  suiaCapyModuleId: string,
+  capyId: string,
+  itemId: string,
+): Promise<string> {
+  const tx = await signer.executeMoveCallWithRequestType({
+    packageObjectId: suiaCapyModuleId,
+    module: 'suia_capy',
+    function: 'wrap_capy_with_item',
+    typeArguments: [],
+    arguments: [
+      capyId,
+      itemId,
+    ],
+    gasBudget,
+  });
+  console.log('tx', JSON.stringify(tx, null, 2));
+  return (tx as any).EffectsCert.effects.effects.created![0].reference.objectId;
+}
+
+async function wrap_suia_capy_with_item(
+  suiaCapyModuleId: string,
+  suiaCapyId: string,
+  itemId: string,
+): Promise<void> {
+  const tx = await signer.executeMoveCallWithRequestType({
+    packageObjectId: suiaCapyModuleId,
+    module: 'suia_capy',
+    function: 'wrap_suia_capy_with_item',
+    typeArguments: [],
+    arguments: [
+      suiaCapyId,
+      itemId,
+    ],
+    gasBudget,
+  });
+  console.log('tx', JSON.stringify(tx, null, 2));
 }
 
 async function main() {
@@ -154,27 +167,22 @@ async function main() {
   }
   const capyId = await capy_breed_and_keep(capy1Id, capy2Id);
   console.log(`capyId: ${capyId}`);
-  // claim football suia
-  const footballSuiaId = '0xbb2686f6607f10dbec41d654e6968ce8c9bce254';
-  const suiaModuleId = '0x81afd6832d2ae685a221bf464b89544b7ab852ac';
-  // TODO: check football medal id
-  const personalFootballSuiaIds = objs.filter(obj => obj.type === `${suiaModuleId}::suia::PersonalMedal`);
-  let personalFootballSuiaId;
-  if (personalFootballSuiaIds.length === 0) {
-    personalFootballSuiaId = await claim(suiaModuleId, footballSuiaId);
-  } else {
-    personalFootballSuiaId = personalFootballSuiaIds[0].objectId;
-  }
-  console.log('personalFootballSuiaId', personalFootballSuiaId);
   // publish
   const publishResult = await publish();
   console.log('publishResult', JSON.stringify(publishResult, null, 2));
-  const {packageId: footballCapyModuleId, objectId: footballSuiaCapyMetaObjectId} = publishResult;
-  // add meta
-  await add_meta(footballCapyModuleId, footballSuiaCapyMetaObjectId, footballSuiaId, 'Football Suia Capy', 'Football Suia Capy Description', 'https://i.imgur.com/2IeReRS.png');
-  // claim football suia capy
-  const footballSuiaCapyId = await claim_football_suia_capy(footballCapyModuleId, footballSuiaCapyMetaObjectId, capyId, footballSuiaId, personalFootballSuiaId);
-  console.log('footballSuiaCapyId', footballSuiaCapyId);
+  const {packageId: suiaCapyModuleId, objectId: suiaCapyCapObjectId} = publishResult;
+  // create item
+  const flagId = await create_and_send_item(suiaCapyModuleId, suiaCapyCapObjectId, 'flag', 'brazil', '0x' + addr);
+  const soccerId = await create_and_send_item(suiaCapyModuleId, suiaCapyCapObjectId, 'soccer', 'soccer', '0x' + addr);
+  // wrap capy with flag
+  const suiaCapyId = await wrap_capy_with_item(suiaCapyModuleId, capyId, flagId);
+  // query suia capy
+  let suiaCapy = await provider.getObject(suiaCapyId);
+  console.log('suiaCapy', JSON.stringify(suiaCapy, null, 2));
+  // wrap suia capy with soccer
+  await wrap_suia_capy_with_item(suiaCapyModuleId, suiaCapyId, soccerId);
+  suiaCapy = await provider.getObject(suiaCapyId);
+  console.log('suiaCapy', JSON.stringify(suiaCapy, null, 2));
   console.log('-----end-----');
 }
 
