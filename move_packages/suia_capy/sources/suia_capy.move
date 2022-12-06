@@ -81,7 +81,7 @@ module suia_capy::suia_capy {
             id,
             capy,
             name: utf8(b"Suia Capy"),
-            description: utf8(b"Suia Capy"),
+            description: utf8(b"The 1st composability case on Sui: Capy + Suia"),
             items: vector::singleton(item),
         };
         transfer::transfer(suia_capy, tx_context::sender(ctx));

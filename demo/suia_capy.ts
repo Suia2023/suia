@@ -171,9 +171,13 @@ async function main() {
   const publishResult = await publish();
   console.log('publishResult', JSON.stringify(publishResult, null, 2));
   const {packageId: suiaCapyModuleId, objectId: suiaCapyCapObjectId} = publishResult;
+  // const suiaCapyModuleId = '0x8467234e4405336c535550be82e75cbc75debdea';
+  // const suiaCapyCapObjectId = '0xd10fa76bc4918f73cb248e8377408f301cb724af';
   // create item
-  const flagId = await create_and_send_item(suiaCapyModuleId, suiaCapyCapObjectId, 'flag', 'brazil', '0x' + addr);
-  const soccerId = await create_and_send_item(suiaCapyModuleId, suiaCapyCapObjectId, 'soccer', 'soccer', '0x' + addr);
+  const recipient = '0x' + addr;
+  // const recipient = '0xd891c5e938da31c715a9bcd4a026f75ae40d4260';
+  const flagId = await create_and_send_item(suiaCapyModuleId, suiaCapyCapObjectId, 'flag', 'brazil', recipient);
+  const soccerId = await create_and_send_item(suiaCapyModuleId, suiaCapyCapObjectId, 'soccer', 'soccer', recipient);
   // wrap capy with flag
   const suiaCapyId = await wrap_capy_with_item(suiaCapyModuleId, capyId, flagId);
   // query suia capy
