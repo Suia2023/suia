@@ -31,6 +31,6 @@ jobs:
       - name: Install Task
         uses: arduino/setup-task@v1
       - run: task test
-      - run: yarn install
-      - run: cp .env.example .env
-      - run: task demo
+#      - run: yarn install
+#      - run: cp .env.example .env
+#      - run: task demo

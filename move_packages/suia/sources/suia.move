@@ -28,7 +28,7 @@ module mynft::suia {
         owners: VecSet<address>,
     }
 
-    struct PersonalMedal has key {
+    struct PersonalMedal has key, store {
         id: UID,
         name: String,
         description: String,
