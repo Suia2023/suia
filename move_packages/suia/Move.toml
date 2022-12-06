@@ -8,5 +8,5 @@ Sui = { local = "../../../sui/crates/sui-framework" }
 
 [addresses]
 #mynft = "0x0"
-mynft = "0x81afd6832d2ae685a221bf464b89544b7ab852ac"
+mynft = "0xe0679dcda7283697becce2fd639f40115ffca93a"
 sui =  "0x2"

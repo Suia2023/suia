@@ -28,6 +28,8 @@ tasks:
     cmds:
       - yarn ts-node demo/demo.ts
     sources:
+      - ./**/*.move
+      - ./**/Move.toml
       - demo/demo.ts
       - .env
   demo-capy:

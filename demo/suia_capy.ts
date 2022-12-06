@@ -2,8 +2,8 @@ import { Ed25519Keypair, JsonRpcProvider, RawSigner } from '@mysten/sui.js';
 import * as fs from 'fs';
 require('dotenv').config()
 
-const CapyRegistryID = '0x484bbd3ffb6700ac0fd3353cebc297d55df905c8';
-const CAPY_MODULE_ID = '0xfea7e09c8e07665037ed83871e32e4150c6f5b51';
+const CapyRegistryID = '0x8ac8eb17d43f555b60a9ad124882616f6d098e22';
+const CAPY_MODULE_ID = '0x1ff1cfbb8e31ee527ac3361cdeda860b54e7c815';
 
 const provider = new JsonRpcProvider(process.env.SUI_RPC_URL);
 const keypairseed = process.env.KEY_PAIR_SEED;
@@ -20,7 +20,7 @@ interface PublishResult {
 
 async function publish(): Promise<PublishResult> {
   const compiledModules = [fs.readFileSync(`move_packages/suia_capy/build/SuiaCapy/bytecode_modules/suia_capy.mv`, {encoding: 'base64'})];
-  const publishTxn = await signer.publishWithRequestType({
+  const publishTxn = await signer.publish({
     compiledModules,
     gasBudget,
   });
@@ -36,7 +36,7 @@ async function publish(): Promise<PublishResult> {
 }
 
 async function claim(medalModuleId: string, medalId: string): Promise<string> {
-  const tx = await signer.executeMoveCallWithRequestType({
+  const tx = await signer.executeMoveCall({
     packageObjectId: medalModuleId,
     module: 'suia',
     function: 'claim_medal',
@@ -51,14 +51,14 @@ async function claim(medalModuleId: string, medalId: string): Promise<string> {
 }
 
 async function eden_breed_capy(): Promise<string> {
-  const tx = await signer.executeMoveCallWithRequestType({
+  const tx = await signer.executeMoveCall({
     packageObjectId: CAPY_MODULE_ID,
     module: 'eden',
-    function: 'breed',
+    function: 'get_capy',
     typeArguments: [],
     arguments: [
-      '0xa901e27ce4dd9327ad578e08646bb19c2c41d5b9',
-      '0x484bbd3ffb6700ac0fd3353cebc297d55df905c8',
+      '0xafb9c24d9e6225f7baf6cdd52f2d3fc0ad29449b',
+      '0x8ac8eb17d43f555b60a9ad124882616f6d098e22',
     ],
     gasBudget,
   });
@@ -69,7 +69,7 @@ async function eden_breed_capy(): Promise<string> {
 
 // input 2 capies and breed a new one
 async function capy_breed_and_keep(capy1: string, capy2: string): Promise<string> {
-  const tx = await signer.executeMoveCallWithRequestType({
+  const tx = await signer.executeMoveCall({
     packageObjectId: CAPY_MODULE_ID,
     module: 'capy',
     function: 'breed_and_keep',
@@ -92,7 +92,7 @@ async function create_and_send_item(
   name: string,
   recipient: string,
 ): Promise<string> {
-  const tx = await signer.executeMoveCallWithRequestType({
+  const tx = await signer.executeMoveCall({
     packageObjectId: suiaCapyModuleId,
     module: 'suia_capy',
     function: 'create_and_send_item',
@@ -114,7 +114,7 @@ async function wrap_capy_with_item(
   capyId: string,
   itemId: string,
 ): Promise<string> {
-  const tx = await signer.executeMoveCallWithRequestType({
+  const tx = await signer.executeMoveCall({
     packageObjectId: suiaCapyModuleId,
     module: 'suia_capy',
     function: 'wrap_capy_with_item',
@@ -134,7 +134,7 @@ async function wrap_suia_capy_with_item(
   suiaCapyId: string,
   itemId: string,
 ): Promise<void> {
-  const tx = await signer.executeMoveCallWithRequestType({
+  const tx = await signer.executeMoveCall({
     packageObjectId: suiaCapyModuleId,
     module: 'suia_capy',
     function: 'wrap_suia_capy_with_item',

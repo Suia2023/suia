@@ -17,7 +17,7 @@ interface PublishResult {
 
 async function publish(): Promise<PublishResult> {
   const compiledModules = [fs.readFileSync('move_packages/suia/build/MyNFT/bytecode_modules/suia.mv', {encoding: 'base64'})];
-  const publishTxn = await signer.publishWithRequestType({
+  const publishTxn = await signer.publish({
     compiledModules,
     gasBudget: 10000,
   });
@@ -35,7 +35,7 @@ async function publish(): Promise<PublishResult> {
 async function interact_with_medal(params: PublishResult) {
   // create medal
   const { medalModuleId, medalStoreId } = params;
-  const createMedalTxn = await signer.executeMoveCallWithRequestType({
+  const createMedalTxn = await signer.executeMoveCall({
     packageObjectId: medalModuleId,
     module: 'suia',
     function: 'create_medal',
@@ -53,7 +53,7 @@ async function interact_with_medal(params: PublishResult) {
   console.log('createMedalTxn', JSON.stringify(createMedalTxn));
   const medalId = (createMedalTxn as any).EffectsCert.effects.effects.created![0].reference.objectId
   // claim medal
-  const claimMedalTxn = await signer.executeMoveCallWithRequestType({
+  const claimMedalTxn = await signer.executeMoveCall({
     packageObjectId: medalModuleId,
     module: 'suia',
     function: 'claim_medal',
@@ -93,7 +93,7 @@ async function queries(medalModuleId: string, medalStoreId: string, userAddr: st
 }
 
 async function claim(medalModuleId: string, medalId: string) {
-  const claimMedalTxn = await signer.executeMoveCallWithRequestType({
+  const claimMedalTxn = await signer.executeMoveCall({
     packageObjectId: medalModuleId,
     module: 'suia',
     function: 'claim_medal',
@@ -107,7 +107,7 @@ async function claim(medalModuleId: string, medalId: string) {
 }
 
 async function create(medalModuleId: string, medalStoreId: string): Promise<string> {
-  const createMedalTxn = await signer.executeMoveCallWithRequestType({
+  const createMedalTxn = await signer.executeMoveCall({
     packageObjectId: medalModuleId,
     module: 'suia',
     function: 'create_medal',

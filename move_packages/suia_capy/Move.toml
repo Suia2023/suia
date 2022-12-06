@@ -11,7 +11,7 @@ sui-capybaras = { local = "../../../sui/sui_programmability/examples/capy" }
 MyNFT = { local = "../suia" }
 
 [addresses]
-capy =  "0xfea7e09c8e07665037ed83871e32e4150c6f5b51"
-mynft = "0x81afd6832d2ae685a221bf464b89544b7ab852ac"
+capy =  "0x1ff1cfbb8e31ee527ac3361cdeda860b54e7c815"
+mynft = "0xe0679dcda7283697becce2fd639f40115ffca93a"
 sui =  "0x2"
 suia_capy = "0x0"
