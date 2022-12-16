@@ -7,6 +7,6 @@ version = "0.1.0"
 Sui = { local = "../../../sui/crates/sui-framework" }
 
 [addresses]
-#mynft = "0x0"
-mynft = "0xe0679dcda7283697becce2fd639f40115ffca93a"
+mynft = "0x0"
+#mynft = "0xe0679dcda7283697becce2fd639f40115ffca93a"
 sui =  "0x2"

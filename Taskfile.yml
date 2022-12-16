@@ -10,7 +10,7 @@ tasks:
     cmds:
       - sui move build --skip-fetch-latest-git-deps -d
     sources:
-      - sources/**/*.move
+      - ./**/*.move
       - Move.toml
   test:
     vars:

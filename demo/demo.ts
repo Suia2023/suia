@@ -51,7 +51,7 @@ async function interact_with_medal(params: PublishResult) {
     gasBudget: 10000,
   });
   console.log('createMedalTxn', JSON.stringify(createMedalTxn));
-  const medalId = (createMedalTxn as any).EffectsCert.effects.effects.created![0].reference.objectId
+  const medalId = (createMedalTxn as any).EffectsCert.effects.effects.events.filter((e: any) => e.newObject?.objectType === `${medalModuleId}::suia::Medal`)[0].newObject.objectId;
   // claim medal
   const claimMedalTxn = await signer.executeMoveCall({
     packageObjectId: medalModuleId,
@@ -71,14 +71,18 @@ async function interact_with_medal(params: PublishResult) {
 async function queries(medalModuleId: string, medalStoreId: string, userAddr: string) {
   const medalStore = await provider.getObject(medalStoreId);
   console.log(`medalStore: ${JSON.stringify(medalStore, null, 2)}`);
-  const medals = (medalStore as any).details.data.fields.medals;
+  const medalsTableID = (medalStore as any).details.data.fields.medals.fields.id.id;
+  const medals = await provider.getObjectsOwnedByObject(medalsTableID);
   console.log(`medals: ${JSON.stringify(medals, null, 2)}`);
   // query medal details, this data can be cached by frontend
   const cachedMedalDetails: any = {};
   for (const medal of medals) {
-    const medalDetail = await provider.getObject(medal);
+    const medalIdDetail = await provider.getObject(medal.objectId);
+    console.log(`medalIdDetail: ${JSON.stringify(medalIdDetail, null, 2)}`);
+    const medalId = (medalIdDetail as any).details.data.fields.value;
+    const medalDetail = await provider.getObject(medalId);
     console.log(`medalDetail: ${JSON.stringify(medalDetail, null, 2)}`);
-    cachedMedalDetails[medal] = (medalDetail.details as any).data.fields;
+    cachedMedalDetails[medalId] = (medalDetail.details as any).data.fields;
   }
   // query user medal gallery
   const userMedals = (await provider.getObjectsOwnedByAddress(userAddr)).filter(obj => obj.type === `${medalModuleId}::suia::PersonalMedal`);
@@ -139,11 +143,6 @@ async function main() {
   await interact_with_medal(publishResult);
   const { medalModuleId, medalStoreId } = publishResult;
   await queries(medalModuleId, medalStoreId, addr);
-  // const medalStoreId = '0x5cb5ff2fc57b4e5c7dbdaaf387f91def71fe4b32';
-  // const medalModuleId = '0x32ee35c78f84c7d5b78e16c29e972a1b180a74b8';
-  // const medalId = '0xdd927b2cfe8f6f35a723742318859be5ce72f334'; // GM, SUI
-  // // await create(medalModuleId, medalStoreId);
-  // await claim(medalModuleId, medalId);
   console.log('-----end-----');
 }
 
