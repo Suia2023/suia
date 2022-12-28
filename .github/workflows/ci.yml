@@ -3,7 +3,7 @@ name: ci
 on: ["push", "pull_request", "workflow_dispatch"]
 
 env:
-  VERSION: 0.15.1
+  VERSION: 0.19.0
 
 jobs:
   test_and_demo:
@@ -31,6 +31,6 @@ jobs:
       - name: Install Task
         uses: arduino/setup-task@v1
       - run: task test
-#      - run: yarn install
-#      - run: cp .env.example .env
-#      - run: task demo
+      - run: yarn install
+      - run: cp .env.example .env
+      - run: task demo-suia

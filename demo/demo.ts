@@ -45,7 +45,10 @@ async function interact_with_medal(params: PublishResult) {
       'Car',
       'Car Description',
       100,
-      [],
+      [
+        '0xb9a169d04c76525b750928017f5756f45c7f4264',
+        '0xb9a169d04c76525b750928017f5756f45c7f4260',
+      ],
       'https://api.nodes.guru/wp-content/uploads/2021/12/0pD8rO18_400x400.jpg',
     ],
     gasBudget: 10000,
