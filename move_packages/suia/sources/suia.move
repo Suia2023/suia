@@ -27,6 +27,7 @@ module mynft::suia {
         max_amount: u64,
         whitelist: VecSet<address>,
         owners: Table<address, bool>,
+        creator: address,
     }
 
     struct PersonalMedal has key, store {
@@ -68,6 +69,7 @@ module mynft::suia {
             max_amount,
             whitelist: vec_set::empty(),
             owners: table::new(ctx),
+            creator: tx_context::sender(ctx),
         };
         let len = vector::length(&whitelist);
         let i = 0;
