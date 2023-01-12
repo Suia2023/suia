@@ -1,9 +1,11 @@
 import { Ed25519Keypair, JsonRpcProvider, RawSigner } from '@mysten/sui.js';
 import * as fs from 'fs';
+import {SuiObjectInfo} from "@mysten/sui.js/src/types";
 require('dotenv').config()
 
-const CapyRegistryID = '0x8ac8eb17d43f555b60a9ad124882616f6d098e22';
-const CAPY_MODULE_ID = '0x1ff1cfbb8e31ee527ac3361cdeda860b54e7c815';
+const EDEN = '0x5bce01d99d57e076aff705465328cdd4ac2351'
+const CapyRegistryID = '0xd52eaf499d223114515049642f5e939bc5325e30';
+const CAPY_MODULE_ID = '0xba483c73a9b79bcc592cc5f163465ff1bc5c5d2e';
 
 const provider = new JsonRpcProvider(process.env.SUI_RPC_URL);
 const keypairseed = process.env.KEY_PAIR_SEED;
@@ -57,12 +59,12 @@ async function eden_breed_capy(): Promise<string> {
     function: 'get_capy',
     typeArguments: [],
     arguments: [
-      '0xafb9c24d9e6225f7baf6cdd52f2d3fc0ad29449b',
-      '0x8ac8eb17d43f555b60a9ad124882616f6d098e22',
+      EDEN,
+      CapyRegistryID,
     ],
     gasBudget,
   });
-  console.log('tx', JSON.stringify(tx));
+  console.log('tx', JSON.stringify(tx, null, 2));
   const capyId = (tx as any).EffectsCert.effects.effects.created![0].reference.objectId
   return capyId;
 }
@@ -95,13 +97,15 @@ async function create_and_send_item(
   const tx = await signer.executeMoveCall({
     packageObjectId: suiaCapyModuleId,
     module: 'suia_capy',
-    function: 'create_and_send_item',
+    function: 'batch_create_and_send_item',
     typeArguments: [],
     arguments: [
       capId,
       type,
       name,
-      recipient,
+      [
+        recipient,
+      ],
     ],
     gasBudget,
   });
@@ -122,6 +126,8 @@ async function wrap_capy_with_item(
     arguments: [
       capyId,
       itemId,
+      'suia capy',
+      'suia capy description'
     ],
     gasBudget,
   });
@@ -155,24 +161,40 @@ async function main() {
   const objs = await provider.getObjectsOwnedByAddress('0x' + addr);
   console.log(`objects of ${addr} are ${JSON.stringify(objs, null, 2)}`);
   // breed new capy
-  const capies = objs.filter(obj => obj.type === `${CAPY_MODULE_ID}::capy::Capy`);
+  let capies: string[] = [];
+  let num = 0;
+  for (let obj of objs) {
+    if(obj.type !== `${CAPY_MODULE_ID}::capy::Capy`) {
+      continue
+    }
+    const res = await provider.getObject(obj.objectId)
+    console.log(`id: ${obj.objectId}, type: ${obj.type}, status: ${res.status}`)
+    if(res.status === 'Exists') {
+      capies.push(obj.objectId)
+      num += 1
+      if (num >= 2) {
+        break
+      }
+    }
+  }
+  console.log('capies', JSON.stringify(capies, null, 2));
   let capy1Id;
   let capy2Id;
-  if (capies.length < 2) {
+  if (num < 2) {
     capy1Id = await eden_breed_capy();
     capy2Id = await eden_breed_capy();
   } else {
-    capy1Id = capies[0].objectId;
-    capy2Id = capies[1].objectId;
+    capy1Id = capies[0];
+    capy2Id = capies[1];
   }
+  console.log('capy1Id', capy1Id);
+  console.log('capy2Id', capy2Id);
   const capyId = await capy_breed_and_keep(capy1Id, capy2Id);
-  console.log(`capyId: ${capyId}`);
+  console.log('capyId', capyId);
   // publish
   const publishResult = await publish();
   console.log('publishResult', JSON.stringify(publishResult, null, 2));
   const {packageId: suiaCapyModuleId, objectId: suiaCapyCapObjectId} = publishResult;
-  // const suiaCapyModuleId = '0x8467234e4405336c535550be82e75cbc75debdea';
-  // const suiaCapyCapObjectId = '0xd10fa76bc4918f73cb248e8377408f301cb724af';
   // create item
   const recipient = '0x' + addr;
   // const recipient = '0xd891c5e938da31c715a9bcd4a026f75ae40d4260';

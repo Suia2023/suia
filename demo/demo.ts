@@ -44,7 +44,7 @@ async function interact_with_medal(params: PublishResult) {
       medalStoreId,
       'Car',
       'Car Description',
-      100,
+      '100',
       [
         '0xb9a169d04c76525b750928017f5756f45c7f4264',
         '0xb9a169d04c76525b750928017f5756f45c7f4260',
