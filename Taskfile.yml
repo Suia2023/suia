@@ -8,7 +8,7 @@ tasks:
       PACKAGE: '{{default "suia" .PACKAGE}}'
     dir: ./move_packages/{{ .PACKAGE}}
     cmds:
-      - sui move build --skip-fetch-latest-git-deps -d
+      - sui move build --skip-fetch-latest-git-deps
     sources:
       - ./**/*.move
       - Move.toml
@@ -35,7 +35,6 @@ tasks:
   demo-capy:
     deps:
       - task: build
-        vars: {PACKAGE: "suia_capy"}
     cmds:
       - yarn ts-node demo/suia_capy.ts
     sources:

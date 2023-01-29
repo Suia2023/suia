@@ -3,9 +3,12 @@ import * as fs from 'fs';
 import {SuiObjectInfo} from "@mysten/sui.js/src/types";
 require('dotenv').config()
 
-const EDEN = '0x5bce01d99d57e076aff705465328cdd4ac2351'
-const CapyRegistryID = '0xd52eaf499d223114515049642f5e939bc5325e30';
-const CAPY_MODULE_ID = '0xba483c73a9b79bcc592cc5f163465ff1bc5c5d2e';
+// go to https://capy.art/collection to get a free capy
+// check the tx in explorer, and get this 3 params
+// https://explorer.sui.io/transaction/HnxFaYEcRbHFW1A2mksEPvgt23GfvZYg5gtHMSPvQWAd?network=devnet
+const EDEN = '0x9081e5e2afd8b7f99ec1d7155eb15366f9282ce4'
+const CapyRegistryID = '0x29d0cb7a1394e2dff9f531a52741b3cbffb8d172';
+const CAPY_MODULE_ID = '0x1fc8b469f3605d2a0eb17b2a0bfba0d6203f09a2';
 
 const provider = new JsonRpcProvider(process.env.SUI_RPC_URL);
 const keypairseed = process.env.KEY_PAIR_SEED;
@@ -21,7 +24,7 @@ interface PublishResult {
 }
 
 async function publish(): Promise<PublishResult> {
-  const compiledModules = [fs.readFileSync(`move_packages/suia_capy/build/SuiaCapy/bytecode_modules/suia_capy.mv`, {encoding: 'base64'})];
+  const compiledModules = [fs.readFileSync(`move_packages/suia/build/MyNFT/bytecode_modules/suia_capy.mv`, {encoding: 'base64'})];
   const publishTxn = await signer.publish({
     compiledModules,
     gasBudget,
@@ -148,6 +151,8 @@ async function wrap_suia_capy_with_item(
     arguments: [
       suiaCapyId,
       itemId,
+      'suia capy',
+      'suia capy description'
     ],
     gasBudget,
   });

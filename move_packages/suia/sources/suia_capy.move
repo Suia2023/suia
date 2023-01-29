@@ -1,4 +1,4 @@
-module suia_capy::suia_capy {
+module mynft::suia_capy {
     use sui::object::UID;
     use sui::url::{Self, Url};
     use capy::capy::Capy;
@@ -109,8 +109,12 @@ module suia_capy::suia_capy {
     public entry fun wrap_suia_capy_with_item(
         suia_capy: &mut SuiaCapy,
         item: SuiaCapyItem,
+        name: vector<u8>,
+        description: vector<u8>,
         _ctx: &mut TxContext,
     ) {
+        suia_capy.name = utf8(name);
+        suia_capy.description = utf8(description);
         vector::push_back(&mut suia_capy.items, item)
     }
 
