@@ -3,7 +3,7 @@ name: ci
 on: ["push", "pull_request", "workflow_dispatch"]
 
 env:
-  VERSION: 0.20.0
+  VERSION: 0.23.0
 
 jobs:
   test_and_demo:
@@ -30,7 +30,14 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
       - name: Install Task
         uses: arduino/setup-task@v1
+      - run: |
+          cd ..
+          git clone https://github.com/MystenLabs/sui.git
+          cd sui/sui_programmability/examples/capy
+          sed -i 's/capy = "0x0"/capy = "0x1fc8b469f3605d2a0eb17b2a0bfba0d6203f09a2"/g' Move.toml
+          cd ../../../../suia
       - run: task test
       - run: yarn install
       - run: cp .env.example .env
       - run: task demo-suia
+      - run: task demo-capy

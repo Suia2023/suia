@@ -1,8 +1,13 @@
-import { Ed25519Keypair, JsonRpcProvider, RawSigner } from '@mysten/sui.js';
+import {Ed25519Keypair, JsonRpcProvider, Network, RawSigner} from '@mysten/sui.js';
 import * as fs from 'fs';
 require('dotenv').config()
 
-const provider = new JsonRpcProvider(process.env.SUI_RPC_URL);
+let provider = new JsonRpcProvider(process.env.SUI_RPC_URL);
+let isDevnet = process.env.SUI_RPC_URL!.indexOf('devnet') !== -1
+console.log('isDevnet', isDevnet);
+if (isDevnet) {
+  provider = new JsonRpcProvider(Network.DEVNET);
+}
 const keypairseed = process.env.KEY_PAIR_SEED;
 // seed 32 bytes, private key 64 bytes
 const keypair = Ed25519Keypair.fromSeed(Uint8Array.from(Buffer.from(keypairseed!, 'hex')));
@@ -138,6 +143,10 @@ async function main() {
   console.log('-----start-----');
   const addr = await signer.getAddress();
   console.log(`address: 0x${addr}`);
+  if (isDevnet) {
+    const res = await provider.requestSuiFromFaucet(addr);
+    console.log('requestSuiFromFaucet', JSON.stringify(res, null, 2));
+  }
   const objs = await provider.getObjectsOwnedByAddress('0x' + addr);
   console.log(`objects of ${addr} are ${JSON.stringify(objs, null, 2)}`);
 

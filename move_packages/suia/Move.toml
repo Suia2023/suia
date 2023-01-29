@@ -11,8 +11,8 @@ sui-capybaras = { local = "../../../sui/sui_programmability/examples/capy" }
 
 [addresses]
 # devnet-0.23.0
-#capy =  "0x1fc8b469f3605d2a0eb17b2a0bfba0d6203f09a2"
+capy =  "0x1fc8b469f3605d2a0eb17b2a0bfba0d6203f09a2"
 # testnet
-capy =  "0x4c10b61966a34d3bb5c8a8f063e6b7445fc41f93"
+#capy =  "0x4c10b61966a34d3bb5c8a8f063e6b7445fc41f93"
 mynft = "0x0"
 sui =  "0x2"
