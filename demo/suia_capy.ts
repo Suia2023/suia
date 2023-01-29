@@ -6,9 +6,9 @@ require('dotenv').config()
 // go to https://capy.art/collection to get a free capy
 // check the tx in explorer, and get this 3 params
 // https://explorer.sui.io/transaction/HnxFaYEcRbHFW1A2mksEPvgt23GfvZYg5gtHMSPvQWAd?network=devnet
-const EDEN = '0x9081e5e2afd8b7f99ec1d7155eb15366f9282ce4'
-const CapyRegistryID = '0x29d0cb7a1394e2dff9f531a52741b3cbffb8d172';
-const CAPY_MODULE_ID = '0x1fc8b469f3605d2a0eb17b2a0bfba0d6203f09a2';
+const EDEN = process.env.EDEN!;
+const CAPY_REGISTRY_ID = process.env.CAPY_REGISTRY_ID!;
+const CAPY_MODULE_ID = process.env.CAPY_MODULE_ID!;
 
 const provider = new JsonRpcProvider(process.env.SUI_RPC_URL);
 const keypairseed = process.env.KEY_PAIR_SEED;
@@ -63,7 +63,7 @@ async function eden_breed_capy(): Promise<string> {
     typeArguments: [],
     arguments: [
       EDEN,
-      CapyRegistryID,
+      CAPY_REGISTRY_ID,
     ],
     gasBudget,
   });
@@ -80,7 +80,7 @@ async function capy_breed_and_keep(capy1: string, capy2: string): Promise<string
     function: 'breed_and_keep',
     typeArguments: [],
     arguments: [
-      CapyRegistryID,
+      CAPY_REGISTRY_ID,
       capy1,
       capy2,
     ],
