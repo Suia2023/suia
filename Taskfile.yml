@@ -6,37 +6,36 @@ tasks:
   build:
     vars:
       PACKAGE: '{{default "suia" .PACKAGE}}'
-    dir: ./move_packages/{{ .PACKAGE}}
+    dir: ./packages/{{ .PACKAGE}}
     cmds:
       - sui move build --skip-fetch-latest-git-deps
     sources:
-      - ./**/*.move
+      - sources/**/*.move
       - Move.toml
   test:
     vars:
       PACKAGE: '{{default "suia" .PACKAGE}}'
-    dir: ./move_packages/{{ .PACKAGE}}
+    dir: ./packages/{{ .PACKAGE}}
     cmds:
       - sui move test --skip-fetch-latest-git-deps
     sources:
       - sources/**/*.move
       - Move.toml
-  demo-suia:
+  demo-one:
+    vars:
+      PACKAGE: '{{default "suia" .DEMO}}'
     deps:
-      - task: build
-        vars: {PACKAGE: "suia"}
+      - build
     cmds:
-      - yarn ts-node demo/demo.ts
+      - yarn ts-node demo/{{ .DEMO}}.ts
     sources:
-      - ./**/*.move
-      - ./**/Move.toml
-      - demo/demo.ts
+      - demo/{{ .DEMO}}.ts
       - .env
-  demo-capy:
-    deps:
-      - task: build
+  demo-all:
     cmds:
-      - yarn ts-node demo/suia_capy.ts
+      - task demo-one DEMO=suia -f
+      - task demo-one DEMO=suia_capy -f
+      - task demo-one DEMO=showcase -f
     sources:
-      - demo/suia_capy.ts
+      - demo/*.ts
       - .env

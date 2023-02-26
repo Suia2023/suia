@@ -10,8 +10,8 @@ Sui = { local = "../../../sui/crates/sui-framework" }
 sui-capybaras = { local = "../../../sui/sui_programmability/examples/capy" }
 
 [addresses]
-# devnet-0.24.0
-capy =  "0x372fbc03f0a39fce091784ecfa1324209c8a7c61"
+# devnet-0.27.0
+capy =  "0x79634df87de3f88b181388262fe52945fcf6380a"
 # testnet
 #capy =  "0x4c10b61966a34d3bb5c8a8f063e6b7445fc41f93"
 mynft = "0x0"

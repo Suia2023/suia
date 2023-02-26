@@ -24,7 +24,7 @@ $ cp .env.example .env
 # run demo
 $ yarn demo
 yarn run v1.22.19
-$ ts-node demo/demo.ts
+$ ts-node demo/suia.ts
 -----start-----
 address: 0x8a4662abf9f8b7aa947b174f29a7a8f259e111e5
 objects of 0x8a4662abf9f8b7aa947b174f29a7a8f259e111e5 are []

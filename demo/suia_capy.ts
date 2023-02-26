@@ -1,6 +1,5 @@
-import { Ed25519Keypair, JsonRpcProvider, RawSigner } from '@mysten/sui.js';
+import { Ed25519Keypair, JsonRpcProvider, Connection, RawSigner } from '@mysten/sui.js';
 import * as fs from 'fs';
-import {SuiObjectInfo} from "@mysten/sui.js/src/types";
 require('dotenv').config()
 
 // go to https://capy.art/collection to get a free capy
@@ -10,10 +9,14 @@ const EDEN = process.env.EDEN!;
 const CAPY_REGISTRY_ID = process.env.CAPY_REGISTRY_ID!;
 const CAPY_MODULE_ID = process.env.CAPY_MODULE_ID!;
 
-const provider = new JsonRpcProvider(process.env.SUI_RPC_URL);
+const connection = new Connection({
+  fullnode: process.env.SUI_RPC_URL!,
+  faucet: process.env.FAUCET_URL,
+});
+let provider = new JsonRpcProvider(connection);
 const keypairseed = process.env.KEY_PAIR_SEED;
 // seed 32 bytes, private key 64 bytes
-const keypair = Ed25519Keypair.fromSeed(Uint8Array.from(Buffer.from(keypairseed!, 'hex')));
+const keypair = Ed25519Keypair.fromSecretKey(Uint8Array.from(Buffer.from(keypairseed!, 'hex')));
 const signer = new RawSigner( keypair, provider );
 
 const gasBudget = 100000;
@@ -24,13 +27,13 @@ interface PublishResult {
 }
 
 async function publish(): Promise<PublishResult> {
-  const compiledModules = [fs.readFileSync(`move_packages/suia/build/MyNFT/bytecode_modules/suia_capy.mv`, {encoding: 'base64'})];
+  const compiledModules = [fs.readFileSync(`packages/suia/build/MyNFT/bytecode_modules/suia_capy.mv`, {encoding: 'base64'})];
   const publishTxn = await signer.publish({
     compiledModules,
     gasBudget,
   });
   console.log('publishTxn', JSON.stringify(publishTxn, null, 2));
-  const newObjectEvent = (publishTxn as any).EffectsCert.effects.effects.events.filter((e: any) => e.newObject !== undefined)[0].newObject;
+  const newObjectEvent = (publishTxn as any).effects.effects.events.filter((e: any) => e.newObject !== undefined)[0].newObject;
   console.log('newObjectEvent', JSON.stringify(newObjectEvent, null, 2));
   const packageId = newObjectEvent.packageId;
   const objectId = newObjectEvent.objectId;
@@ -52,7 +55,7 @@ async function claim(medalModuleId: string, medalId: string): Promise<string> {
     gasBudget,
   });
   console.log('tx', JSON.stringify(tx));
-  return (tx as any).EffectsCert.effects.effects.created![0].reference.objectId;
+  return (tx as any).effects.effects.created![0].reference.objectId;
 }
 
 async function eden_breed_capy(): Promise<string> {
@@ -68,7 +71,7 @@ async function eden_breed_capy(): Promise<string> {
     gasBudget,
   });
   console.log('tx', JSON.stringify(tx, null, 2));
-  const capyId = (tx as any).EffectsCert.effects.effects.created![0].reference.objectId
+  const capyId = (tx as any).effects.effects.events.filter((e: any) => e.newObject?.objectType === `${CAPY_MODULE_ID}::capy::Capy`)[0].newObject.objectId;
   return capyId;
 }
 
@@ -87,7 +90,8 @@ async function capy_breed_and_keep(capy1: string, capy2: string): Promise<string
     gasBudget,
   });
   console.log('tx', JSON.stringify(tx, null, 2));
-  return (tx as any).EffectsCert.effects.effects.created![0].reference.objectId;
+  const capyId = (tx as any).effects.effects.events.filter((e: any) => e.newObject?.objectType === `${CAPY_MODULE_ID}::capy::Capy`)[0].newObject.objectId;
+  return capyId
 }
 
 async function create_and_send_item(
@@ -113,7 +117,7 @@ async function create_and_send_item(
     gasBudget,
   });
   console.log('tx', JSON.stringify(tx, null, 2));
-  return (tx as any).EffectsCert.effects.effects.created![0].reference.objectId;
+  return (tx as any).effects.effects.created![0].reference.objectId;
 }
 
 async function wrap_capy_with_item(
@@ -135,7 +139,7 @@ async function wrap_capy_with_item(
     gasBudget,
   });
   console.log('tx', JSON.stringify(tx, null, 2));
-  return (tx as any).EffectsCert.effects.effects.created![0].reference.objectId;
+  return (tx as any).effects.effects.created![0].reference.objectId;
 }
 
 async function wrap_suia_capy_with_item(

@@ -3,7 +3,7 @@ name: ci
 on: ["push", "pull_request", "workflow_dispatch"]
 
 env:
-  VERSION: 0.24.0
+  VERSION: 0.27.0
 
 jobs:
   test_and_demo:
@@ -35,10 +35,9 @@ jobs:
           git clone https://github.com/MystenLabs/sui.git
           cd sui/sui_programmability/examples/capy
           git checkout devnet-${{ env.VERSION }}
-          sed -i 's/capy = "0x0"/capy = "0x372fbc03f0a39fce091784ecfa1324209c8a7c61"/g' Move.toml
+          sed -i 's/capy = "0x0"/capy = "0x79634df87de3f88b181388262fe52945fcf6380a"/g' Move.toml
           cd ../../../../suia
       - run: task test
       - run: yarn install
       - run: cp .env.example .env
-      - run: task demo-suia
-      - run: task demo-capy
+      - run: task demo-all

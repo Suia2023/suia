@@ -1,16 +1,15 @@
-import {Ed25519Keypair, JsonRpcProvider, Network, RawSigner} from '@mysten/sui.js';
+import {Connection, Ed25519Keypair, JsonRpcProvider, RawSigner} from '@mysten/sui.js';
 import * as fs from 'fs';
 require('dotenv').config()
 
-let provider = new JsonRpcProvider(process.env.SUI_RPC_URL);
-let isDevnet = process.env.SUI_RPC_URL!.indexOf('devnet') !== -1
-console.log('isDevnet', isDevnet);
-if (isDevnet) {
-  provider = new JsonRpcProvider(Network.DEVNET);
-}
+const connection = new Connection({
+  fullnode: process.env.SUI_RPC_URL!,
+  faucet: process.env.FAUCET_URL,
+});
+let provider = new JsonRpcProvider(connection);
 const keypairseed = process.env.KEY_PAIR_SEED;
 // seed 32 bytes, private key 64 bytes
-const keypair = Ed25519Keypair.fromSeed(Uint8Array.from(Buffer.from(keypairseed!, 'hex')));
+const keypair = Ed25519Keypair.fromSecretKey(Uint8Array.from(Buffer.from(keypairseed!, 'hex')));
 const signer = new RawSigner( keypair, provider );
 
 const gasBudget = 100000;
@@ -21,13 +20,13 @@ interface PublishResult {
 }
 
 async function publish(): Promise<PublishResult> {
-  const compiledModules = [fs.readFileSync('move_packages/suia/build/MyNFT/bytecode_modules/suia.mv', {encoding: 'base64'})];
+  const compiledModules = [fs.readFileSync('packages/suia/build/MyNFT/bytecode_modules/suia.mv', {encoding: 'base64'})];
   const publishTxn = await signer.publish({
     compiledModules,
     gasBudget: 10000,
   });
   console.log('publishTxn', JSON.stringify(publishTxn, null, 2));
-  const newObjectEvent = (publishTxn as any).EffectsCert.effects.effects.events.filter((e: any) => e.newObject !== undefined)[0].newObject;
+  const newObjectEvent = (publishTxn as any).effects.effects.events.filter((e: any) => e.newObject !== undefined)[0].newObject;
   console.log('newObjectEvent', JSON.stringify(newObjectEvent, null, 2));
   const medalModuleId = newObjectEvent.packageId;
   const medalStoreId = newObjectEvent.objectId;
@@ -50,16 +49,13 @@ async function interact_with_medal(params: PublishResult) {
       'Car',
       'Car Description',
       '100',
-      [
-        '0xb9a169d04c76525b750928017f5756f45c7f4264',
-        '0xb9a169d04c76525b750928017f5756f45c7f4260',
-      ],
+      [],
       'https://api.nodes.guru/wp-content/uploads/2021/12/0pD8rO18_400x400.jpg',
     ],
     gasBudget: 10000,
   });
   console.log('createMedalTxn', JSON.stringify(createMedalTxn));
-  const medalId = (createMedalTxn as any).EffectsCert.effects.effects.events.filter((e: any) => e.newObject?.objectType === `${medalModuleId}::suia::Medal`)[0].newObject.objectId;
+  const medalId = (createMedalTxn as any).effects.effects.events.filter((e: any) => e.newObject?.objectType === `${medalModuleId}::suia::Medal`)[0].newObject.objectId;
   // claim medal
   const claimMedalTxn = await signer.executeMoveCall({
     packageObjectId: medalModuleId,
@@ -80,11 +76,11 @@ async function queries(medalModuleId: string, medalStoreId: string, userAddr: st
   const medalStore = await provider.getObject(medalStoreId);
   console.log(`medalStore: ${JSON.stringify(medalStore, null, 2)}`);
   const medalsTableID = (medalStore as any).details.data.fields.medals.fields.id.id;
-  const medals = await provider.getObjectsOwnedByObject(medalsTableID);
+  const medals = await provider.getDynamicFields(medalsTableID);
   console.log(`medals: ${JSON.stringify(medals, null, 2)}`);
   // query medal details, this data can be cached by frontend
   const cachedMedalDetails: any = {};
-  for (const medal of medals) {
+  for (const medal of medals.data) {
     const medalIdDetail = await provider.getObject(medal.objectId);
     console.log(`medalIdDetail: ${JSON.stringify(medalIdDetail, null, 2)}`);
     const medalId = (medalIdDetail as any).details.data.fields.value;
@@ -135,7 +131,7 @@ async function create(medalModuleId: string, medalStoreId: string): Promise<stri
     gasBudget,
   });
   console.log('createMedalTxn', JSON.stringify(createMedalTxn));
-  const medalId = (createMedalTxn as any).EffectsCert.effects.effects.created![0].reference.objectId
+  const medalId = (createMedalTxn as any).effects.effects.created![0].reference.objectId
   return medalId;
 }
 
@@ -143,12 +139,12 @@ async function main() {
   console.log('-----start-----');
   const addr = await signer.getAddress();
   console.log(`address: 0x${addr}`);
-  if (isDevnet) {
+  const objs = await provider.getObjectsOwnedByAddress('0x' + addr);
+  console.log(`objects of ${addr} are ${JSON.stringify(objs, null, 2)}`);
+  if (connection.faucet && objs.length == 0) {
     const res = await provider.requestSuiFromFaucet(addr);
     console.log('requestSuiFromFaucet', JSON.stringify(res, null, 2));
   }
-  const objs = await provider.getObjectsOwnedByAddress('0x' + addr);
-  console.log(`objects of ${addr} are ${JSON.stringify(objs, null, 2)}`);
 
   const publishResult = await publish();
   console.log(`PublishResult: ${JSON.stringify(publishResult, null, 2)}`);
