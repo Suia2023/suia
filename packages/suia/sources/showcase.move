@@ -1,12 +1,10 @@
 module mynft::showcase {
-    use sui::object::UID;
+    use sui::bag::{Self, Bag};
+    use sui::object::{Self, UID};
     use std::string::{String, utf8};
     use sui::vec_map::{Self, VecMap};
-    use sui::tx_context::{TxContext};
+    use sui::tx_context::{Self, TxContext};
     use sui::transfer;
-    use sui::object;
-    use sui::tx_context;
-    use sui::dynamic_object_field as dof;
     #[test_only]
     use sui::test_scenario;
 
@@ -33,6 +31,7 @@ module mynft::showcase {
         id: UID,
         name: String,
         layout: String,
+        nfts: Bag,
     }
 
     fun init(ctx: &mut TxContext) {
@@ -78,6 +77,7 @@ module mynft::showcase {
             id: object::new(ctx),
             layout,
             name,
+            nfts: bag::new(ctx),
         };
         transfer::transfer(showcase, tx_context::sender(ctx));
     }
@@ -89,13 +89,13 @@ module mynft::showcase {
         position: u64,
         _ctx: &mut TxContext,
     ) {
-        if (dof::exists_(&showcase.id, position)) {
+        if (bag::contains(&showcase.nfts, position)) {
             abort ENFT_EXISTS_AT_THIS_POSITION
         };
         let layout_config = vec_map::get(&config.layouts, &showcase.layout);
         let max_nft_num = layout_config.max_nft_num;
         assert!(position < max_nft_num, EINVALID_POSITION);
-        dof::add(&mut showcase.id, position, nft);
+        bag::add(&mut showcase.nfts, position, nft);
     }
 
     public entry fun extract_from_showcase<NFT: key + store>(
@@ -103,8 +103,8 @@ module mynft::showcase {
         position: u64,
         ctx: &mut TxContext,
     ) {
-        assert!(dof::exists_(&showcase.id, position), ENFT_NOT_EXISTS_AT_THIS_POSITION);
-        let nft: NFT = dof::remove(&mut showcase.id, position);
+        assert!(bag::contains(&showcase.nfts, position), ENFT_NOT_EXISTS_AT_THIS_POSITION);
+        let nft: NFT = bag::remove(&mut showcase.nfts, position);
         transfer::transfer(nft, tx_context::sender(ctx))
     }
 

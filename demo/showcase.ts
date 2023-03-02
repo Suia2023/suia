@@ -170,12 +170,13 @@ async function queries(moduleId: string, showcaseConfigId: string, userAddr: str
   // showcase
   const showcase = await provider.getObject(showcaseObjId);
   console.log("showcase", JSON.stringify(showcase, null, 2));
+  const showcaseBagId = (showcase.details as any).data.fields.nfts.fields.id.id;
   // get nfts in showcase
-  const nfts = await provider.getDynamicFields(showcaseObjId);
+  const nfts = await provider.getDynamicFields(showcaseBagId);
   console.log('nfts', JSON.stringify(nfts, null, 2));
   // show details of the nfts
   for (const nft of nfts.data) {
-    const nftObj = await provider.getDynamicFieldObject(showcaseObjId, nft.name);
+    const nftObj = await provider.getDynamicFieldObject(showcaseBagId, nft.name);
     console.log('nft', JSON.stringify(nftObj, null, 2))
   }
 }
