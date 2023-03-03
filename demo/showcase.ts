@@ -61,6 +61,8 @@ async function interact(params: PublishResult) {
     arguments: [
       showcaseConfigId,
       'my suia space',
+      'my suia space description',
+      'my suia space url',
       '9-box grid',
     ],
     gasBudget,

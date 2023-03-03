@@ -30,6 +30,8 @@ module mynft::showcase {
     struct Showcase has key, store {
         id: UID,
         name: String,
+        description: String,
+        url: String,
         layout: String,
         nfts: Bag,
     }
@@ -67,16 +69,19 @@ module mynft::showcase {
     public entry fun create_showcase(
         config: &Config,
         name: vector<u8>,
+        description: vector<u8>,
+        url: vector<u8>,
         layout: vector<u8>,
         ctx: &mut TxContext,
     ) {
-        let name = utf8(name);
         let layout = utf8(layout);
         assert!(vec_map::contains(&config.layouts, &layout), ELAYOUT_NOT_EXISTS);
         let showcase = Showcase {
             id: object::new(ctx),
             layout,
-            name,
+            name: utf8(name),
+            description: utf8(description),
+            url: utf8(url),
             nfts: bag::new(ctx),
         };
         transfer::transfer(showcase, tx_context::sender(ctx));
@@ -162,9 +167,13 @@ module mynft::showcase {
         // create showcase
         test_scenario::next_tx(scenario, user);
         let showcase_name = b"my sui space";
+        let showcase_desc = b"my sui space desc";
+        let showcase_url = b"my sui space url";
         create_showcase(
             &config,
             showcase_name,
+            showcase_desc,
+            showcase_url,
             layout_name,
             test_scenario::ctx(scenario),
         );
