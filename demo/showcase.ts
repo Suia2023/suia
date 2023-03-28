@@ -1,205 +1,228 @@
-import {Connection, Ed25519Keypair, JsonRpcProvider, RawSigner} from '@mysten/sui.js';
-import * as fs from 'fs';
-require('dotenv').config()
-
-const connection = new Connection({
-  fullnode: process.env.SUI_RPC_URL!,
-  faucet: process.env.FAUCET_URL,
-});
-let provider = new JsonRpcProvider(connection);
-const keypairseed = process.env.KEY_PAIR_SEED;
-// seed 32 bytes, private key 64 bytes
-const keypair = Ed25519Keypair.fromSecretKey(Uint8Array.from(Buffer.from(keypairseed!, 'hex')));
-const signer = new RawSigner( keypair, provider );
-
-const gasBudget = 100000;
+import {
+  Connection,
+  devnetConnection,
+  Ed25519Keypair,
+  fromB64,
+  JsonRpcProvider,
+  RawSigner,
+  TransactionBlock,
+  SuiObjectChangeCreated,
+  SuiObjectChangePublished,
+} from "@mysten/sui.js";
+import { connection, provider, publish, sendTx, signer } from "./common";
+import * as path from "path";
 
 interface PublishResult {
-  moduleId: string,
-  showcaseConfigId: string,
-}
-
-async function publish(): Promise<PublishResult> {
-  const compiledModules = [fs.readFileSync('packages/suia/build/MyNFT/bytecode_modules/showcase.mv', {encoding: 'base64'})];
-  const publishTxn = await signer.publish({
-    compiledModules,
-    gasBudget,
-  });
-  console.log('publishTxn', JSON.stringify(publishTxn, null, 2));
-  const newObjectEvent = (publishTxn as any).effects.effects.events.filter((e: any) => e.newObject !== undefined)[0].newObject;
-  console.log('newObjectEvent', JSON.stringify(newObjectEvent, null, 2));
-  const moduleId = newObjectEvent.packageId;
-  const showcaseConfigId = newObjectEvent.objectId;
-  return {
-    moduleId,
-    showcaseConfigId,
-  }
+  moduleId: string;
+  showcaseConfigId: string;
 }
 
 async function interact(params: PublishResult) {
   // add layout
   const { moduleId, showcaseConfigId } = params;
-  const addLayoutTx = await signer.executeMoveCall({
-    packageObjectId: moduleId,
-    module: 'showcase',
-    function: 'add_layout',
+  let tx = new TransactionBlock();
+  tx.moveCall({
+    target: `${moduleId}::showcase::add_layout`,
     typeArguments: [],
     arguments: [
-      showcaseConfigId,
-      '9-box grid',
-      '9',
+      tx.object(showcaseConfigId),
+      tx.pure("9-box grid"),
+      tx.pure("9"),
     ],
-    gasBudget,
   });
-  console.log('addLayoutTx', JSON.stringify(addLayoutTx));
+  const addLayoutTx = await sendTx(tx, signer);
+  console.log("addLayoutTx", JSON.stringify(addLayoutTx));
   // create showcase
-  const createShowcaseTx = await signer.executeMoveCall({
-    packageObjectId: moduleId,
-    module: 'showcase',
-    function: 'create_showcase',
+  tx = new TransactionBlock();
+  tx.moveCall({
+    target: `${moduleId}::showcase::create_showcase`,
     typeArguments: [],
     arguments: [
-      showcaseConfigId,
-      'my suia space',
-      'my suia space description',
-      'my suia space url',
-      '9-box grid',
+      tx.object(showcaseConfigId),
+      tx.pure("my suia space"),
+      tx.pure("my suia space description"),
+      tx.pure("my suia space url"),
+      tx.pure("9-box grid"),
     ],
-    gasBudget,
   });
-  console.log('createShowcaseTx', JSON.stringify(createShowcaseTx, null, 2));
-  const showcaseId = (createShowcaseTx as any).effects.effects.events.filter((e: any) => e.newObject?.objectType === `${moduleId}::showcase::Showcase`)[0].newObject.objectId;
-  // add_nft_to_showcase
-  const addr = await signer.getAddress();
-  const objs = await provider.getObjectsOwnedByAddress('0x' + addr);
+  const createShowcaseTx = await sendTx(tx, signer);
+  console.log("createShowcaseTx", JSON.stringify(createShowcaseTx, null, 2));
+  const showcaseId = (
+    createShowcaseTx.objectChanges!.filter(
+      (o) =>
+        o.type === "created" && o.objectType.endsWith("::showcase::Showcase")
+    )[0] as SuiObjectChangeCreated
+  ).objectId;
+
+  // create 2 test nft
+  tx = new TransactionBlock();
+  tx.moveCall({
+    target: `${moduleId}::test_nft::claim`,
+    arguments: [
+      tx.pure("TestNFT1"),
+      tx.pure("TestNFT1 Description"),
+      tx.pure("https://image.com/test_nft_1.png"),
+    ],
+  });
+  tx.moveCall({
+    target: `${moduleId}::test_nft::claim`,
+    arguments: [
+      tx.pure("TestNFT2"),
+      tx.pure("TestNFT2 Description"),
+      tx.pure("https://image.com/test_nft_2.png"),
+    ],
+  });
+  const createTestNftTx = await sendTx(tx, signer);
+  console.log("createTestNftTx", JSON.stringify(createTestNftTx, null, 2));
+  const nftsRes = createTestNftTx.objectChanges!.filter(
+    (o) =>
+      o.type === "created" && o.objectType.endsWith("::test_nft::SuiaTestNFT")
+  ) as SuiObjectChangeCreated[];
+  console.log("nftsRes", JSON.stringify(nftsRes, null, 2));
+  const nfts = nftsRes.map((o) => o.objectId);
+  console.log("nfts", JSON.stringify(nfts, null, 2));
+
+  // const addr = await signer.getAddress();
+  // const objs = await provider.getOwnedObjects({
+  //   owner: addr,
+  //   filter: {
+  //     StructType: suiaTestNftType,
+  //   },
+  //   options: {
+  //     showType: true,
+  //     showOwner: true,
+  //   },
+  // });
   // console.log(`objects of ${addr} are ${JSON.stringify(objs, null, 2)}`);
-  // nfts
-  let nfts = [];
-  const nft_filters = [
-    'suia_capy::SuiaCapy',
-    // 'capy::Capy',
-    'suia::PersonalMedal',
-  ];
-  let num = 2;
-  for (let obj of objs) {
-    if(num <= 0) {
-      break
-    }
-    let use = false;
-    for (let nft_filter of nft_filters) {
-      console.log(obj.type);
-      if(obj.type.endsWith(nft_filter)){
-        use = true;
-        break;
-      }
-    }
-    if(!use){
-      continue;
-    }
-    const res = await provider.getObject(obj.objectId)
-    console.log(`id: ${obj.objectId}, type: ${obj.type}, status: ${res.status}`)
-    if(res.status === 'Exists') {
-      num--;
-      nfts.push({objectId: obj.objectId, type: obj.type})
-    }
-  }
-  console.log('nfts', JSON.stringify(nfts, null, 2));
+  // const nfts = objs.data.map(o => o.data!.objectId);
+  // console.log('nfts', JSON.stringify(nfts, null, 2));
 
-  const addNftTx = await signer.executeMoveCall({
-    packageObjectId: moduleId,
-    module: 'showcase',
-    function: 'add_nft_to_showcase',
-    typeArguments: [
-      nfts[0].type,
-    ],
+  // add_nft_to_showcase
+  const suiaTestNftType = `${moduleId}::test_nft::SuiaTestNFT`;
+  tx = new TransactionBlock();
+  tx.moveCall({
+    target: `${moduleId}::showcase::add_nft_to_showcase`,
+    typeArguments: [suiaTestNftType],
     arguments: [
-      showcaseConfigId,
-      showcaseId,
-      nfts[0].objectId,
-      '0',
+      tx.object(showcaseConfigId),
+      tx.object(showcaseId),
+      tx.object(nfts[0]),
+      tx.pure("0"),
     ],
-    gasBudget,
   });
-  console.log('addNftTx', JSON.stringify(addNftTx));
+  const addNftTx = await sendTx(tx, signer);
+  console.log("addNftTx", JSON.stringify(addNftTx, null, 2));
 
-  const addNftTx1 = await signer.executeMoveCall({
-    packageObjectId: moduleId,
-    module: 'showcase',
-    function: 'add_nft_to_showcase',
-    typeArguments: [
-      nfts[1].type,
-    ],
+  tx = new TransactionBlock();
+  tx.moveCall({
+    target: `${moduleId}::showcase::add_nft_to_showcase`,
+    typeArguments: [suiaTestNftType],
     arguments: [
-      showcaseConfigId,
-      showcaseId,
-      nfts[1].objectId,
-      '1',
+      tx.object(showcaseConfigId),
+      tx.object(showcaseId),
+      tx.object(nfts[1]),
+      tx.pure("1"),
     ],
-    gasBudget,
   });
-  console.log('addNftTx1', JSON.stringify(addNftTx1));
+  const addNftTx1 = await sendTx(tx, signer);
+  console.log("addNftTx1", JSON.stringify(addNftTx1));
 
   // extract_from_showcase
-  const extractNftTx = await signer.executeMoveCall({
-    packageObjectId: moduleId,
-    module: 'showcase',
-    function: 'extract_from_showcase',
-    typeArguments: [
-      nfts[1].type,
-    ],
-    arguments: [
-      showcaseId,
-      '1',
-    ],
-    gasBudget,
+  tx = new TransactionBlock();
+  tx.moveCall({
+    target: `${moduleId}::showcase::extract_from_showcase`,
+    typeArguments: [suiaTestNftType],
+    arguments: [tx.object(showcaseId), tx.pure("1")],
   });
-  console.log('extractNftTx', JSON.stringify(extractNftTx));
+  const extractNftTx = await sendTx(tx, signer);
+  console.log("extractNftTx", JSON.stringify(extractNftTx));
 }
 
-async function queries(moduleId: string, showcaseConfigId: string, userAddr: string) {
+async function queries(
+  moduleId: string,
+  showcaseConfigId: string,
+  userAddr: string
+) {
   // config
-  const config = await provider.getObject(showcaseConfigId);
+  const config = await provider.getObject({
+    id: showcaseConfigId,
+    options: {
+      showContent: true,
+    },
+  });
   console.log(`config: ${JSON.stringify(config, null, 2)}`);
   // get user's showcase
-  const objects = await provider.getObjectsOwnedByAddress(userAddr)
-  let showcaseObjId = "";
-  for (const obj of objects) {
-    if(obj.type === `${moduleId}::showcase::Showcase`) {
-      showcaseObjId = obj.objectId;
-      break;
-    }
-  }
-  // showcase
-  const showcase = await provider.getObject(showcaseObjId);
-  console.log("showcase", JSON.stringify(showcase, null, 2));
-  const showcaseBagId = (showcase.details as any).data.fields.nfts.fields.id.id;
+  const showcases = await provider.getOwnedObjects({
+    owner: userAddr,
+    filter: {
+      StructType: `${moduleId}::showcase::Showcase`,
+    },
+    options: {
+      showType: true,
+      showContent: true,
+      showDisplay: true,
+    },
+  });
+  console.log("showcases", JSON.stringify(showcases, null, 2));
   // get nfts in showcase
-  const nfts = await provider.getDynamicFields(showcaseBagId);
-  console.log('nfts', JSON.stringify(nfts, null, 2));
+  const showcaseBagId = (showcases.data[0] as any).data.content.fields.nfts
+    .fields.id.id;
+  console.log("showcaseBagId", showcaseBagId);
+  const nfts = await provider.getDynamicFields({
+    parentId: showcaseBagId,
+  });
+  console.log("nfts", JSON.stringify(nfts, null, 2));
   // show details of the nfts
   for (const nft of nfts.data) {
-    const nftObj = await provider.getDynamicFieldObject(showcaseBagId, nft.name);
-    console.log('nft', JSON.stringify(nftObj, null, 2))
+    const nftObj = await provider.getDynamicFieldObject({
+      parentId: showcaseBagId,
+      name: nft.name,
+    });
+    console.log("nft", JSON.stringify(nftObj, null, 2));
   }
 }
 
 async function main() {
-  console.log('-----start-----');
+  console.log("-----start-----");
   const addr = await signer.getAddress();
-  console.log(`address: 0x${addr}`);
-  const objs = await provider.getObjectsOwnedByAddress('0x' + addr);
+  console.log(`address: ${addr}`);
+  const objs = await provider.getCoins({
+    owner: addr,
+  });
   console.log(`objects of ${addr} are ${JSON.stringify(objs, null, 2)}`);
-  if (connection.faucet && objs.length == 0) {
+  if (connection.faucet && objs.data.length == 0) {
     const res = await provider.requestSuiFromFaucet(addr);
-    console.log('requestSuiFromFaucet', JSON.stringify(res, null, 2));
+    console.log("requestSuiFromFaucet", JSON.stringify(res, null, 2));
   }
 
-  const publishResult = await publish();
+  // publish
+  const publishTxn = await publish(
+    path.join(__dirname, "../packages/suia"),
+    signer
+  );
+  const moduleId = (
+    publishTxn.objectChanges!.filter(
+      (o) => o.type === "published"
+    )[0] as SuiObjectChangePublished
+  ).packageId;
+  const showcaseConfigId = (
+    publishTxn.objectChanges!.filter(
+      (o) => o.type === "created" && o.objectType.endsWith("::showcase::Config")
+    )[0] as SuiObjectChangeCreated
+  ).objectId;
+  const publishResult = {
+    moduleId,
+    showcaseConfigId,
+  };
   console.log(`PublishResult: ${JSON.stringify(publishResult, null, 2)}`);
+  // const publishResult = {
+  //   "moduleId": "0x2f21a8dfc0d522dfb8ae21daf2e5c333ee49a3fa12939a139bdf1ee592d9aff3",
+  //   "showcaseConfigId": "0xdb2f3262e23f467b3660aa63cfc902404447f7d7e9c95aabb86b0115f9c5f3a1"
+  // }
+  // const { moduleId, showcaseConfigId } = publishResult;
   await interact(publishResult);
-  const { moduleId, showcaseConfigId } = publishResult;
   await queries(moduleId, showcaseConfigId, addr);
-  console.log('-----end-----');
+  console.log("-----end-----");
 }
 
 main()

@@ -1,18 +1,22 @@
-module mynft::suia {
+module suia::suia {
     use std::string::{String, utf8};
     use std::vector;
     use sui::object::{Self, ID, UID};
-    use sui::tx_context::{Self, TxContext};
+    use sui::tx_context::{Self, TxContext, sender};
     use sui::vec_set::{Self, VecSet};
     use sui::transfer;
     use sui::table::{Self, Table};
     #[test_only]
     use sui::test_scenario;
+    use sui::package;
+    use sui::display;
 
     // errors
     const ESENDER_NOT_AUTHORIZED_TO_CLAIM: u64 = 0;
     const EMEDAL_MAX_AMOUNT_REACHED: u64 = 1;
     const EALREADY_CLAIMED: u64 = 2;
+
+    struct SUIA has drop {}
 
     struct MedalStore has key, store {
         id: UID,
@@ -23,7 +27,7 @@ module mynft::suia {
         id: UID,
         name: String,
         description: String,
-        url: String,
+        image_url: String,
         max_amount: u64,
         whitelist: VecSet<address>,
         owners: Table<address, bool>,
@@ -34,12 +38,58 @@ module mynft::suia {
         id: UID,
         name: String,
         description: String,
-        url: String,
+        image_url: String,
         medal: ID,
     }
 
-    fun init(ctx: &mut TxContext) {
-        create_medal_store(ctx)
+    fun init(otw: SUIA, ctx: &mut TxContext) {
+        create_medal_store(ctx);
+
+        let publisher = package::claim(otw, ctx);
+
+        let medal_keys = vector[
+            utf8(b"name"),
+            utf8(b"link"),
+            utf8(b"image_url"),
+            utf8(b"description"),
+            utf8(b"project_url"),
+            utf8(b"creator"),
+        ];
+        let medal_values = vector[
+            utf8(b"{name}"),
+            utf8(b"https://suia.io/suia/{id}"),
+            utf8(b"{image_url}"),
+            utf8(b"{description}"),
+            utf8(b"https://suia.io/"),
+            utf8(b"{creator}"),
+        ];
+        let medal_display = display::new_with_fields<Medal>(
+            &publisher, medal_keys, medal_values, ctx
+        );
+        display::update_version(&mut medal_display);
+        transfer::public_transfer(medal_display, sender(ctx));
+
+        let personal_medal_keys = vector[
+            utf8(b"name"),
+            utf8(b"link"),
+            utf8(b"image_url"),
+            utf8(b"description"),
+            utf8(b"project_url"),
+        ];
+        let personal_medal_values = vector[
+            utf8(b"{name}"),
+            utf8(b"https://suia.io/suia/{id}"),
+            utf8(b"{image_url}"),
+            utf8(b"{description}"),
+            utf8(b"https://suia.io/"),
+        ];
+        let personal_medal_display = display::new_with_fields<PersonalMedal>(
+            &publisher, personal_medal_keys, personal_medal_values, ctx
+        );
+        display::update_version(&mut personal_medal_display);
+        transfer::public_transfer(personal_medal_display, sender(ctx));
+
+        transfer::public_transfer(publisher, sender(ctx));
     }
 
     fun create_medal_store(
@@ -58,14 +108,14 @@ module mynft::suia {
         description: vector<u8>,
         max_amount: u64,
         whitelist: vector<address>,
-        url: vector<u8>,
+        image_url: vector<u8>,
         ctx: &mut TxContext,
     ) {
         let medal = Medal {
             id: object::new(ctx),
             name: utf8(name),
             description: utf8(description),
-            url: utf8(url),
+            image_url: utf8(image_url),
             max_amount,
             whitelist: vec_set::empty(),
             owners: table::new(ctx),
@@ -99,7 +149,7 @@ module mynft::suia {
             medal: object::uid_to_inner(&medal.id),
             name: medal.name,
             description: medal.description,
-            url: medal.url,
+            image_url: medal.image_url,
         };
         transfer::transfer(personal_medal, sender);
     }

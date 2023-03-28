@@ -1,6 +1,6 @@
 # https://taskfile.dev
 
-version: '3'
+version: "3"
 
 tasks:
   build:
@@ -34,7 +34,7 @@ tasks:
   demo-all:
     cmds:
       - task demo-one DEMO=suia -f
-      - task demo-one DEMO=suia_capy -f
+      #      - task demo-one DEMO=suia_capy -f
       - task demo-one DEMO=showcase -f
     sources:
       - demo/*.ts

@@ -1,18 +1,18 @@
 [package]
-name = "MyNFT"
+name = "Suia"
 version = "0.1.0"
 
 [dependencies]
 #Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework", rev = "devnet-0.20.0" }
 #sui-capybaras = { git = "https://github.com/MystenLabs/sui.git", subdir = "sui_programmability/examples/capy", rev = "devnet-0.20.0" }
 
-Sui = { local = "../../../sui/crates/sui-framework" }
-sui-capybaras = { local = "../../../sui/sui_programmability/examples/capy" }
+Sui = { local = "../../../sui/crates/sui-framework/packages/sui-framework" }
+#sui-capybaras = { local = "../../../sui/sui_programmability/examples/capy" }
 
 [addresses]
 # devnet-0.27.0
-capy =  "0x79634df87de3f88b181388262fe52945fcf6380a"
+#capy =  "0x0"
 # testnet
 #capy =  "0x4c10b61966a34d3bb5c8a8f063e6b7445fc41f93"
-mynft = "0x0"
+suia = "0x0"
 sui =  "0x2"

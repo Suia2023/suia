@@ -1,157 +1,179 @@
-import {Connection, Ed25519Keypair, JsonRpcProvider, RawSigner} from '@mysten/sui.js';
-import * as fs from 'fs';
-require('dotenv').config()
-
-const connection = new Connection({
-  fullnode: process.env.SUI_RPC_URL!,
-  faucet: process.env.FAUCET_URL,
-});
-let provider = new JsonRpcProvider(connection);
-const keypairseed = process.env.KEY_PAIR_SEED;
-// seed 32 bytes, private key 64 bytes
-const keypair = Ed25519Keypair.fromSecretKey(Uint8Array.from(Buffer.from(keypairseed!, 'hex')));
-const signer = new RawSigner( keypair, provider );
-
-const gasBudget = 100000;
+import {
+  RawSigner,
+  SuiObjectChangeCreated,
+  SuiObjectChangePublished,
+  TransactionBlock,
+} from "@mysten/sui.js";
+import { connection, provider, publish, sendTx, signer } from "./common";
+import * as path from "path";
 
 interface PublishResult {
-  medalModuleId: string,
-  medalStoreId: string,
+  medalModuleId: string;
+  medalStoreId: string;
 }
 
-async function publish(): Promise<PublishResult> {
-  const compiledModules = [fs.readFileSync('packages/suia/build/MyNFT/bytecode_modules/suia.mv', {encoding: 'base64'})];
-  const publishTxn = await signer.publish({
-    compiledModules,
-    gasBudget: 10000,
-  });
-  console.log('publishTxn', JSON.stringify(publishTxn, null, 2));
-  const newObjectEvent = (publishTxn as any).effects.effects.events.filter((e: any) => e.newObject !== undefined)[0].newObject;
-  console.log('newObjectEvent', JSON.stringify(newObjectEvent, null, 2));
-  const medalModuleId = newObjectEvent.packageId;
-  const medalStoreId = newObjectEvent.objectId;
-  return {
-    medalModuleId,
-    medalStoreId,
-  }
-}
+let tx = new TransactionBlock();
 
-async function interact_with_medal(params: PublishResult) {
+async function interact_with_medal(
+  publishResult: PublishResult,
+  signer: RawSigner
+) {
   // create medal
-  const { medalModuleId, medalStoreId } = params;
-  const createMedalTxn = await signer.executeMoveCall({
-    packageObjectId: medalModuleId,
-    module: 'suia',
-    function: 'create_medal',
-    typeArguments: [],
+  const { medalModuleId, medalStoreId } = publishResult;
+  const addr = await signer.getAddress();
+  tx = new TransactionBlock();
+  tx.moveCall({
+    target: `${medalModuleId}::suia::create_medal`,
     arguments: [
-      medalStoreId,
-      'Car',
-      'Car Description',
-      '100',
-      [],
-      'https://api.nodes.guru/wp-content/uploads/2021/12/0pD8rO18_400x400.jpg',
+      tx.object(medalStoreId),
+      tx.pure("Car"),
+      tx.pure("Car Description"),
+      tx.pure("100"),
+      tx.pure([addr]),
+      tx.pure(
+        "https://api.nodes.guru/wp-content/uploads/2021/12/0pD8rO18_400x400.jpg"
+      ),
     ],
-    gasBudget: 10000,
   });
-  console.log('createMedalTxn', JSON.stringify(createMedalTxn));
-  const medalId = (createMedalTxn as any).effects.effects.events.filter((e: any) => e.newObject?.objectType === `${medalModuleId}::suia::Medal`)[0].newObject.objectId;
+  const createMedalTxn = await sendTx(tx, signer);
+  console.log("createMedalTxn", JSON.stringify(createMedalTxn, null, 2));
+  const medalId = (
+    createMedalTxn.objectChanges!.filter(
+      (o) => o.type === "created" && o.objectType.endsWith("::suia::Medal")
+    )[0] as SuiObjectChangeCreated
+  ).objectId;
   // claim medal
-  const claimMedalTxn = await signer.executeMoveCall({
-    packageObjectId: medalModuleId,
-    module: 'suia',
-    function: 'claim_medal',
+  tx = new TransactionBlock();
+  tx.moveCall({
+    target: `${medalModuleId}::suia::claim_medal`,
     typeArguments: [],
-    arguments: [
-      medalId,
-    ],
-    gasBudget: 10000,
+    arguments: [tx.object(medalId)],
   });
-  console.log('claimMedalTxn', JSON.stringify(claimMedalTxn));
+  const claimMedalTxn = await sendTx(tx, signer);
+  console.log("claimMedalTxn", JSON.stringify(claimMedalTxn, null, 2));
 }
 
 // medalModuleId and medalStoreId should be app config
 // userAddr should come from plugin wallet
-async function queries(medalModuleId: string, medalStoreId: string, userAddr: string) {
-  const medalStore = await provider.getObject(medalStoreId);
+async function queries(
+  medalModuleId: string,
+  medalStoreId: string,
+  userAddr: string
+) {
+  const medalStore = await provider.getObject({
+    id: medalStoreId,
+    options: {
+      showType: true,
+      showContent: true,
+      showDisplay: true,
+    },
+  });
   console.log(`medalStore: ${JSON.stringify(medalStore, null, 2)}`);
-  const medalsTableID = (medalStore as any).details.data.fields.medals.fields.id.id;
-  const medals = await provider.getDynamicFields(medalsTableID);
+  const medalsTableID = (medalStore.data!.content! as any).fields.medals.fields
+    .id.id;
+  console.log(`medalsTableID: ${medalsTableID}`);
+  const medals = await provider.getDynamicFields({
+    parentId: medalsTableID,
+  });
   console.log(`medals: ${JSON.stringify(medals, null, 2)}`);
   // query medal details, this data can be cached by frontend
   const cachedMedalDetails: any = {};
   for (const medal of medals.data) {
-    const medalIdDetail = await provider.getObject(medal.objectId);
+    const medalIdDetail = await provider.getObject({
+      id: medal.objectId,
+      options: {
+        showContent: true,
+      },
+    });
     console.log(`medalIdDetail: ${JSON.stringify(medalIdDetail, null, 2)}`);
-    const medalId = (medalIdDetail as any).details.data.fields.value;
-    const medalDetail = await provider.getObject(medalId);
+    const medalId = (medalIdDetail as any).data.content.fields.value;
+    const medalDetail = await provider.getObject({
+      id: medalId,
+      options: {
+        showContent: true,
+        showType: true,
+        showDisplay: true,
+      },
+    });
     console.log(`medalDetail: ${JSON.stringify(medalDetail, null, 2)}`);
-    cachedMedalDetails[medalId] = (medalDetail.details as any).data.fields;
+    cachedMedalDetails[medalId] = medalDetail.data;
   }
   // query user medal gallery
-  const userMedals = (await provider.getObjectsOwnedByAddress(userAddr)).filter(obj => obj.type === `${medalModuleId}::suia::PersonalMedal`);
+  const userMedals = await provider.getOwnedObjects({
+    owner: userAddr,
+    filter: {
+      StructType: `${medalModuleId}::suia::PersonalMedal`,
+    },
+    options: {
+      showType: true,
+      showDisplay: true,
+      showContent: true,
+    },
+  });
   console.log(`userMedals: ${JSON.stringify(userMedals, null, 2)}`);
-  console.log(`cachedMedalDetails: ${JSON.stringify(cachedMedalDetails, null, 2)}`);
-  for (const medal of userMedals) {
-    const personalMedal = await provider.getObject(medal.objectId);
+  console.log(
+    `cachedMedalDetails: ${JSON.stringify(cachedMedalDetails, null, 2)}`
+  );
+  for (const medal of userMedals.data) {
+    const personalMedal = await provider.getObject({
+      id: medal.data!.objectId,
+      options: {
+        showType: true,
+        showDisplay: true,
+        showContent: true,
+      },
+    });
     console.log(`personalMedal: ${JSON.stringify(personalMedal, null, 2)}`);
-    const medalDetail = cachedMedalDetails[(personalMedal as any).details.data.fields.medal];
+    const medalDetail =
+      cachedMedalDetails[(personalMedal.data as any).content.fields.medal];
     console.log(`userMedalDetail: ${JSON.stringify(medalDetail, null, 2)}`);
   }
 }
 
-async function claim(medalModuleId: string, medalId: string) {
-  const claimMedalTxn = await signer.executeMoveCall({
-    packageObjectId: medalModuleId,
-    module: 'suia',
-    function: 'claim_medal',
-    typeArguments: [],
-    arguments: [
-      medalId,
-    ],
-    gasBudget,
-  });
-  console.log('claimMedalTxn', JSON.stringify(claimMedalTxn));
-}
-
-async function create(medalModuleId: string, medalStoreId: string): Promise<string> {
-  const createMedalTxn = await signer.executeMoveCall({
-    packageObjectId: medalModuleId,
-    module: 'suia',
-    function: 'create_medal',
-    typeArguments: [],
-    arguments: [
-      medalStoreId,
-      'Car',
-      'Car Description',
-      100,
-      [],
-      'https://api.nodes.guru/wp-content/uploads/2021/12/0pD8rO18_400x400.jpg',
-    ],
-    gasBudget,
-  });
-  console.log('createMedalTxn', JSON.stringify(createMedalTxn));
-  const medalId = (createMedalTxn as any).effects.effects.created![0].reference.objectId
-  return medalId;
-}
-
 async function main() {
-  console.log('-----start-----');
+  console.log("-----start-----");
   const addr = await signer.getAddress();
-  console.log(`address: 0x${addr}`);
-  const objs = await provider.getObjectsOwnedByAddress('0x' + addr);
+  console.log(`address: ${addr}`);
+  const objs = await provider.getCoins({
+    owner: addr,
+  });
   console.log(`objects of ${addr} are ${JSON.stringify(objs, null, 2)}`);
-  if (connection.faucet && objs.length == 0) {
+  if (connection.faucet && objs.data.length == 0) {
     const res = await provider.requestSuiFromFaucet(addr);
-    console.log('requestSuiFromFaucet', JSON.stringify(res, null, 2));
+    console.log("requestSuiFromFaucet", JSON.stringify(res, null, 2));
   }
 
-  const publishResult = await publish();
+  // publish
+  const publishTxn = await publish(
+    path.join(__dirname, "../packages/suia"),
+    signer
+  );
+  const medalModuleId = (
+    publishTxn.objectChanges!.filter(
+      (o) => o.type === "published"
+    )[0] as SuiObjectChangePublished
+  ).packageId;
+  const medalStoreId = (
+    publishTxn.objectChanges!.filter(
+      (o) => o.type === "created" && o.objectType.endsWith("::suia::MedalStore")
+    )[0] as SuiObjectChangeCreated
+  ).objectId;
+  const publishResult = {
+    medalModuleId,
+    medalStoreId,
+  };
+  // let publishResult = {
+  //   "medalModuleId": "0x4ae4e01a3f9265c03eb6e11d912fdbd6a8ee45519998a4807452c04cf4c2314f",
+  //   "medalStoreId": "0xebfe060b6b4297ce7eb2b76d8caba21fe99d7941687073a256906f95bf10bc69"
+  // };
+  // const { medalModuleId, medalStoreId } = publishResult;
   console.log(`PublishResult: ${JSON.stringify(publishResult, null, 2)}`);
-  await interact_with_medal(publishResult);
-  const { medalModuleId, medalStoreId } = publishResult;
+
+  // txs
+  await interact_with_medal(publishResult, signer);
+
   await queries(medalModuleId, medalStoreId, addr);
-  console.log('-----end-----');
+  console.log("-----end-----");
 }
 
 main()

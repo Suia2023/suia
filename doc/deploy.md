@@ -35,6 +35,7 @@ mynft = "0xe0679dcda7283697becce2fd639f40115ffca93a"
 ```
 
 Change the address in the deps.
+
 1. Edit `move_packages/suia/Move.toml` and change the `mynft` address.
 2. Edit `sui/sui_programmability/examples/capy/Move.toml` and change the `capy` address.
 

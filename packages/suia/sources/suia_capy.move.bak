@@ -1,4 +1,4 @@
-module mynft::suia_capy {
+module suia::suia_capy {
     use sui::object::UID;
     use sui::url::{Self, Url};
     use capy::capy::Capy;

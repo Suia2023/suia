@@ -1,6 +1,11 @@
-import { Ed25519Keypair, JsonRpcProvider, Connection, RawSigner } from '@mysten/sui.js';
-import * as fs from 'fs';
-require('dotenv').config()
+import {
+  Ed25519Keypair,
+  JsonRpcProvider,
+  Connection,
+  RawSigner,
+} from "@mysten/sui.js";
+import * as fs from "fs";
+require("dotenv").config();
 
 // go to https://capy.art/collection to get a free capy
 // check the tx in explorer, and get this 3 params
@@ -16,177 +21,168 @@ const connection = new Connection({
 let provider = new JsonRpcProvider(connection);
 const keypairseed = process.env.KEY_PAIR_SEED;
 // seed 32 bytes, private key 64 bytes
-const keypair = Ed25519Keypair.fromSecretKey(Uint8Array.from(Buffer.from(keypairseed!, 'hex')));
-const signer = new RawSigner( keypair, provider );
+const keypair = Ed25519Keypair.fromSecretKey(
+  Uint8Array.from(Buffer.from(keypairseed!, "hex"))
+);
+const signer = new RawSigner(keypair, provider);
 
 const gasBudget = 100000;
 
 interface PublishResult {
-  packageId: string,
-  objectId: string,
+  packageId: string;
+  objectId: string;
 }
 
 async function publish(): Promise<PublishResult> {
-  const compiledModules = [fs.readFileSync(`packages/suia/build/MyNFT/bytecode_modules/suia_capy.mv`, {encoding: 'base64'})];
+  const compiledModules = [
+    fs.readFileSync(`packages/suia/build/MyNFT/bytecode_modules/suia_capy.mv`, {
+      encoding: "base64",
+    }),
+  ];
   const publishTxn = await signer.publish({
     compiledModules,
     gasBudget,
   });
-  console.log('publishTxn', JSON.stringify(publishTxn, null, 2));
-  const newObjectEvent = (publishTxn as any).effects.effects.events.filter((e: any) => e.newObject !== undefined)[0].newObject;
-  console.log('newObjectEvent', JSON.stringify(newObjectEvent, null, 2));
+  console.log("publishTxn", JSON.stringify(publishTxn, null, 2));
+  const newObjectEvent = (publishTxn as any).effects.effects.events.filter(
+    (e: any) => e.newObject !== undefined
+  )[0].newObject;
+  console.log("newObjectEvent", JSON.stringify(newObjectEvent, null, 2));
   const packageId = newObjectEvent.packageId;
   const objectId = newObjectEvent.objectId;
   return {
     packageId,
     objectId,
-  }
+  };
 }
 
 async function claim(medalModuleId: string, medalId: string): Promise<string> {
   const tx = await signer.executeMoveCall({
     packageObjectId: medalModuleId,
-    module: 'suia',
-    function: 'claim_medal',
+    module: "suia",
+    function: "claim_medal",
     typeArguments: [],
-    arguments: [
-      medalId,
-    ],
+    arguments: [medalId],
     gasBudget,
   });
-  console.log('tx', JSON.stringify(tx));
+  console.log("tx", JSON.stringify(tx));
   return (tx as any).effects.effects.created![0].reference.objectId;
 }
 
 async function eden_breed_capy(): Promise<string> {
   const tx = await signer.executeMoveCall({
     packageObjectId: CAPY_MODULE_ID,
-    module: 'eden',
-    function: 'get_capy',
+    module: "eden",
+    function: "get_capy",
     typeArguments: [],
-    arguments: [
-      EDEN,
-      CAPY_REGISTRY_ID,
-    ],
+    arguments: [EDEN, CAPY_REGISTRY_ID],
     gasBudget,
   });
-  console.log('tx', JSON.stringify(tx, null, 2));
-  const capyId = (tx as any).effects.effects.events.filter((e: any) => e.newObject?.objectType === `${CAPY_MODULE_ID}::capy::Capy`)[0].newObject.objectId;
+  console.log("tx", JSON.stringify(tx, null, 2));
+  const capyId = (tx as any).effects.effects.events.filter(
+    (e: any) => e.newObject?.objectType === `${CAPY_MODULE_ID}::capy::Capy`
+  )[0].newObject.objectId;
   return capyId;
 }
 
 // input 2 capies and breed a new one
-async function capy_breed_and_keep(capy1: string, capy2: string): Promise<string> {
+async function capy_breed_and_keep(
+  capy1: string,
+  capy2: string
+): Promise<string> {
   const tx = await signer.executeMoveCall({
     packageObjectId: CAPY_MODULE_ID,
-    module: 'capy',
-    function: 'breed_and_keep',
+    module: "capy",
+    function: "breed_and_keep",
     typeArguments: [],
-    arguments: [
-      CAPY_REGISTRY_ID,
-      capy1,
-      capy2,
-    ],
+    arguments: [CAPY_REGISTRY_ID, capy1, capy2],
     gasBudget,
   });
-  console.log('tx', JSON.stringify(tx, null, 2));
-  const capyId = (tx as any).effects.effects.events.filter((e: any) => e.newObject?.objectType === `${CAPY_MODULE_ID}::capy::Capy`)[0].newObject.objectId;
-  return capyId
+  console.log("tx", JSON.stringify(tx, null, 2));
+  const capyId = (tx as any).effects.effects.events.filter(
+    (e: any) => e.newObject?.objectType === `${CAPY_MODULE_ID}::capy::Capy`
+  )[0].newObject.objectId;
+  return capyId;
 }
 
 async function create_and_send_item(
   suiaCapyModuleId: string,
-  capId:string,
+  capId: string,
   type: string,
   name: string,
-  recipient: string,
+  recipient: string
 ): Promise<string> {
   const tx = await signer.executeMoveCall({
     packageObjectId: suiaCapyModuleId,
-    module: 'suia_capy',
-    function: 'batch_create_and_send_item',
+    module: "suia_capy",
+    function: "batch_create_and_send_item",
     typeArguments: [],
-    arguments: [
-      capId,
-      type,
-      name,
-      [
-        recipient,
-      ],
-    ],
+    arguments: [capId, type, name, [recipient]],
     gasBudget,
   });
-  console.log('tx', JSON.stringify(tx, null, 2));
+  console.log("tx", JSON.stringify(tx, null, 2));
   return (tx as any).effects.effects.created![0].reference.objectId;
 }
 
 async function wrap_capy_with_item(
   suiaCapyModuleId: string,
   capyId: string,
-  itemId: string,
+  itemId: string
 ): Promise<string> {
   const tx = await signer.executeMoveCall({
     packageObjectId: suiaCapyModuleId,
-    module: 'suia_capy',
-    function: 'wrap_capy_with_item',
+    module: "suia_capy",
+    function: "wrap_capy_with_item",
     typeArguments: [],
-    arguments: [
-      capyId,
-      itemId,
-      'suia capy',
-      'suia capy description'
-    ],
+    arguments: [capyId, itemId, "suia capy", "suia capy description"],
     gasBudget,
   });
-  console.log('tx', JSON.stringify(tx, null, 2));
+  console.log("tx", JSON.stringify(tx, null, 2));
   return (tx as any).effects.effects.created![0].reference.objectId;
 }
 
 async function wrap_suia_capy_with_item(
   suiaCapyModuleId: string,
   suiaCapyId: string,
-  itemId: string,
+  itemId: string
 ): Promise<void> {
   const tx = await signer.executeMoveCall({
     packageObjectId: suiaCapyModuleId,
-    module: 'suia_capy',
-    function: 'wrap_suia_capy_with_item',
+    module: "suia_capy",
+    function: "wrap_suia_capy_with_item",
     typeArguments: [],
-    arguments: [
-      suiaCapyId,
-      itemId,
-      'suia capy',
-      'suia capy description'
-    ],
+    arguments: [suiaCapyId, itemId, "suia capy", "suia capy description"],
     gasBudget,
   });
-  console.log('tx', JSON.stringify(tx, null, 2));
+  console.log("tx", JSON.stringify(tx, null, 2));
 }
 
 async function main() {
-  console.log('-----start-----');
+  console.log("-----start-----");
   const addr = await signer.getAddress();
   console.log(`address: 0x${addr}`);
-  const objs = await provider.getObjectsOwnedByAddress('0x' + addr);
+  const objs = await provider.getObjectsOwnedByAddress("0x" + addr);
   console.log(`objects of ${addr} are ${JSON.stringify(objs, null, 2)}`);
   // breed new capy
   let capies: string[] = [];
   let num = 0;
   for (let obj of objs) {
-    if(obj.type !== `${CAPY_MODULE_ID}::capy::Capy`) {
-      continue
+    if (obj.type !== `${CAPY_MODULE_ID}::capy::Capy`) {
+      continue;
     }
-    const res = await provider.getObject(obj.objectId)
-    console.log(`id: ${obj.objectId}, type: ${obj.type}, status: ${res.status}`)
-    if(res.status === 'Exists') {
-      capies.push(obj.objectId)
-      num += 1
+    const res = await provider.getObject(obj.objectId);
+    console.log(
+      `id: ${obj.objectId}, type: ${obj.type}, status: ${res.status}`
+    );
+    if (res.status === "Exists") {
+      capies.push(obj.objectId);
+      num += 1;
       if (num >= 2) {
-        break
+        break;
       }
     }
   }
-  console.log('capies', JSON.stringify(capies, null, 2));
+  console.log("capies", JSON.stringify(capies, null, 2));
   let capy1Id;
   let capy2Id;
   if (num < 2) {
@@ -196,29 +192,46 @@ async function main() {
     capy1Id = capies[0];
     capy2Id = capies[1];
   }
-  console.log('capy1Id', capy1Id);
-  console.log('capy2Id', capy2Id);
+  console.log("capy1Id", capy1Id);
+  console.log("capy2Id", capy2Id);
   const capyId = await capy_breed_and_keep(capy1Id, capy2Id);
-  console.log('capyId', capyId);
+  console.log("capyId", capyId);
   // publish
   const publishResult = await publish();
-  console.log('publishResult', JSON.stringify(publishResult, null, 2));
-  const {packageId: suiaCapyModuleId, objectId: suiaCapyCapObjectId} = publishResult;
+  console.log("publishResult", JSON.stringify(publishResult, null, 2));
+  const { packageId: suiaCapyModuleId, objectId: suiaCapyCapObjectId } =
+    publishResult;
   // create item
-  const recipient = '0x' + addr;
+  const recipient = "0x" + addr;
   // const recipient = '0xd891c5e938da31c715a9bcd4a026f75ae40d4260';
-  const flagId = await create_and_send_item(suiaCapyModuleId, suiaCapyCapObjectId, 'flag', 'brazil', recipient);
-  const soccerId = await create_and_send_item(suiaCapyModuleId, suiaCapyCapObjectId, 'soccer', 'soccer', recipient);
+  const flagId = await create_and_send_item(
+    suiaCapyModuleId,
+    suiaCapyCapObjectId,
+    "flag",
+    "brazil",
+    recipient
+  );
+  const soccerId = await create_and_send_item(
+    suiaCapyModuleId,
+    suiaCapyCapObjectId,
+    "soccer",
+    "soccer",
+    recipient
+  );
   // wrap capy with flag
-  const suiaCapyId = await wrap_capy_with_item(suiaCapyModuleId, capyId, flagId);
+  const suiaCapyId = await wrap_capy_with_item(
+    suiaCapyModuleId,
+    capyId,
+    flagId
+  );
   // query suia capy
   let suiaCapy = await provider.getObject(suiaCapyId);
-  console.log('suiaCapy', JSON.stringify(suiaCapy, null, 2));
+  console.log("suiaCapy", JSON.stringify(suiaCapy, null, 2));
   // wrap suia capy with soccer
   await wrap_suia_capy_with_item(suiaCapyModuleId, suiaCapyId, soccerId);
   suiaCapy = await provider.getObject(suiaCapyId);
-  console.log('suiaCapy', JSON.stringify(suiaCapy, null, 2));
-  console.log('-----end-----');
+  console.log("suiaCapy", JSON.stringify(suiaCapy, null, 2));
+  console.log("-----end-----");
 }
 
 main()

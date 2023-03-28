@@ -1,10 +1,12 @@
-module mynft::showcase {
+module suia::showcase {
     use sui::bag::{Self, Bag};
     use sui::object::{Self, UID};
     use std::string::{String, utf8};
     use sui::vec_map::{Self, VecMap};
-    use sui::tx_context::{Self, TxContext};
+    use sui::tx_context::{Self, TxContext, sender};
     use sui::transfer;
+    use sui::package;
+    use sui::display;
     #[test_only]
     use sui::test_scenario;
 
@@ -31,13 +33,44 @@ module mynft::showcase {
         id: UID,
         name: String,
         description: String,
-        url: String,
+        image_url: String,
         layout: String,
+        creator: address,
         nfts: Bag,
     }
 
-    fun init(ctx: &mut TxContext) {
-        create_config(ctx)
+    struct SHOWCASE has drop {}
+
+    fun init(otw: SHOWCASE, ctx: &mut TxContext) {
+        create_config(ctx);
+        let keys = vector[
+            utf8(b"name"),
+            utf8(b"link"),
+            utf8(b"image_url"),
+            utf8(b"description"),
+            utf8(b"project_url"),
+            utf8(b"creator"),
+        ];
+
+        let values = vector[
+            utf8(b"{name}"),
+            utf8(b"https://suia.io/suia/{id}"),
+            utf8(b"{image_url}"),
+            utf8(b"{description}"),
+            utf8(b"https://suia.io/"),
+            utf8(b"{creator}"),
+        ];
+
+        let publisher = package::claim(otw, ctx);
+
+        let display = display::new_with_fields<Showcase>(
+            &publisher, keys, values, ctx
+        );
+
+        display::update_version(&mut display);
+
+        transfer::public_transfer(publisher, sender(ctx));
+        transfer::public_transfer(display, sender(ctx));
     }
 
     fun create_config(
@@ -70,7 +103,7 @@ module mynft::showcase {
         config: &Config,
         name: vector<u8>,
         description: vector<u8>,
-        url: vector<u8>,
+        image_url: vector<u8>,
         layout: vector<u8>,
         ctx: &mut TxContext,
     ) {
@@ -81,10 +114,11 @@ module mynft::showcase {
             layout,
             name: utf8(name),
             description: utf8(description),
-            url: utf8(url),
+            image_url: utf8(image_url),
             nfts: bag::new(ctx),
+            creator: sender(ctx),
         };
-        transfer::transfer(showcase, tx_context::sender(ctx));
+        transfer::transfer(showcase, sender(ctx));
     }
 
     public entry fun add_nft_to_showcase<NFT: key + store>(
@@ -110,7 +144,7 @@ module mynft::showcase {
     ) {
         assert!(bag::contains(&showcase.nfts, position), ENFT_NOT_EXISTS_AT_THIS_POSITION);
         let nft: NFT = bag::remove(&mut showcase.nfts, position);
-        transfer::transfer(nft, tx_context::sender(ctx))
+        transfer::public_transfer(nft, tx_context::sender(ctx))
     }
 
     #[test_only]
