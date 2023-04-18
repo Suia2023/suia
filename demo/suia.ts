@@ -189,14 +189,9 @@ async function main() {
   console.log("-----start-----");
   const addr = await signer.getAddress();
   console.log(`address: ${addr}`);
-  const objs = await provider.getCoins({
-    owner: addr,
-  });
-  console.log(`objects of ${addr} are ${JSON.stringify(objs, null, 2)}`);
-  if (connection.faucet && objs.data.length == 0) {
-    const res = await provider.requestSuiFromFaucet(addr);
-    console.log("requestSuiFromFaucet", JSON.stringify(res, null, 2));
-  }
+  // get coin from faucet
+  const res = await provider.requestSuiFromFaucet(addr);
+  console.log("requestSuiFromFaucet", JSON.stringify(res, null, 2));
 
   // publish
   const publishTxn = await publish(
