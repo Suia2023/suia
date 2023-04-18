@@ -3,7 +3,7 @@ name: ci
 on: ["push", "pull_request", "workflow_dispatch"]
 
 env:
-  VERSION: 0.29.0
+  VERSION: 0.32.0
 
 jobs:
   test_and_demo:

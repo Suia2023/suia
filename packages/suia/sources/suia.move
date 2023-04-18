@@ -3,7 +3,6 @@ module suia::suia {
     use std::vector;
     use sui::object::{Self, ID, UID};
     use sui::tx_context::{Self, TxContext, sender};
-    use sui::vec_set::{Self, VecSet};
     use sui::transfer;
     use sui::table::{Self, Table};
     #[test_only]
@@ -15,6 +14,7 @@ module suia::suia {
     const ESENDER_NOT_AUTHORIZED_TO_CLAIM: u64 = 0;
     const EMEDAL_MAX_AMOUNT_REACHED: u64 = 1;
     const EALREADY_CLAIMED: u64 = 2;
+    const ENOT_AUTHORIZED: u64 = 3;
 
     struct SUIA has drop {}
 
@@ -29,7 +29,7 @@ module suia::suia {
         description: String,
         image_url: String,
         max_amount: u64,
-        whitelist: VecSet<address>,
+        whitelist: Table<address, bool>,
         owners: Table<address, bool>,
         creator: address,
     }
@@ -117,19 +117,36 @@ module suia::suia {
             description: utf8(description),
             image_url: utf8(image_url),
             max_amount,
-            whitelist: vec_set::empty(),
+            whitelist: table::new(ctx),
             owners: table::new(ctx),
             creator: tx_context::sender(ctx),
         };
         let len = vector::length(&whitelist);
         let i = 0;
         while (i < len) {
-            vec_set::insert(&mut medal.whitelist, *vector::borrow(&whitelist, i));
+            table::add(&mut medal.whitelist, *vector::borrow(&whitelist, i), true);
             i = i + 1;
         };
         let medal_key = table::length(&medal_store.medals);
         table::add(&mut medal_store.medals, medal_key, object::uid_to_inner(&medal.id));
         transfer::share_object(medal);
+    }
+
+    public entry fun add_medal_whitelist(
+        medal: &mut Medal,
+        whitelist: vector<address>,
+        ctx: &mut TxContext,
+    ) {
+        assert!(medal.creator == sender(ctx), ENOT_AUTHORIZED);
+        let len = vector::length(&whitelist);
+        let i = 0;
+        while (i < len) {
+            let addr = *vector::borrow(&whitelist, i);
+            if(!table::contains(&medal.whitelist, addr)) {
+                table::add(&mut medal.whitelist, addr, true);
+            };
+            i = i + 1;
+        };
     }
 
     public entry fun claim_medal(
@@ -138,7 +155,7 @@ module suia::suia {
     ) {
         let sender = tx_context::sender(ctx);
         assert!(
-            vec_set::is_empty(&medal.whitelist) || vec_set::contains(&medal.whitelist, &sender),
+            table::is_empty(&medal.whitelist) || table::contains(&medal.whitelist, sender),
             ESENDER_NOT_AUTHORIZED_TO_CLAIM
         );
         assert!(table::length(&medal.owners) < medal.max_amount, EMEDAL_MAX_AMOUNT_REACHED);

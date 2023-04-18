@@ -14,6 +14,49 @@ interface PublishResult {
 
 let tx = new TransactionBlock();
 
+function generateRandomAddress(): string {
+  const randomBytes = new Uint8Array(32);
+  crypto.getRandomValues(randomBytes);
+
+  return '0x' + Array.from(randomBytes)
+    .map(byte => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+async function add_random_whitelist(
+  medalModuleId: string,
+  medalId: string,
+  num: number,
+  signer: RawSigner
+) {
+  const lists = [];
+  const max = 30;
+  while(num > max) {
+    lists.push(max);
+    num -= max;
+  }
+  if(num > 0) {
+    lists.push(num);
+  }
+  for(const n of lists) {
+    let whitelist = [];
+    for(let i = 0; i < n; i++) {
+      whitelist.push(generateRandomAddress());
+    }
+    console.log("whitelist", whitelist);
+    tx = new TransactionBlock();
+    tx.moveCall({
+      target: `${medalModuleId}::suia::add_medal_whitelist`,
+      arguments: [
+        tx.object(medalId),
+        tx.pure(whitelist),
+      ]
+    });
+    const addMedalWhitelistTxn = await sendTx(tx, signer);
+    console.log("addMedalWhitelistTxn", JSON.stringify(addMedalWhitelistTxn, null, 2));
+  }
+}
+
 async function interact_with_medal(
   publishResult: PublishResult,
   signer: RawSigner
@@ -42,6 +85,18 @@ async function interact_with_medal(
       (o) => o.type === "created" && o.objectType.endsWith("::suia::Medal")
     )[0] as SuiObjectChangeCreated
   ).objectId;
+  // add whitelist
+  await add_random_whitelist(medalModuleId, medalId, 31, signer);
+  // tx = new TransactionBlock();
+  // tx.moveCall({
+  //   target: `${medalModuleId}::suia::add_medal_whitelist`,
+  //   arguments: [
+  //     tx.object(medalId),
+  //     tx.pure(whiteList.slice(31, whiteList.length)),
+  //   ]
+  // });
+  // const addMedalWhitelistTxn = await sendTx(tx, signer);
+  // console.log("addMedalWhitelistTxn", JSON.stringify(addMedalWhitelistTxn, null, 2));
   // claim medal
   tx = new TransactionBlock();
   tx.moveCall({
@@ -163,15 +218,14 @@ async function main() {
     medalStoreId,
   };
   // let publishResult = {
-  //   "medalModuleId": "0x4ae4e01a3f9265c03eb6e11d912fdbd6a8ee45519998a4807452c04cf4c2314f",
-  //   "medalStoreId": "0xebfe060b6b4297ce7eb2b76d8caba21fe99d7941687073a256906f95bf10bc69"
+  //   "medalModuleId": "0x720d1ffa40721b3d030be44723ed53ae1f89782591e3fe43136a14b9b0d8616c",
+  //   "medalStoreId": "0x2e98895f5a9d9f24cd83a02a065e0b06c21031814f49f3bc1125ab74086917fc"
   // };
   // const { medalModuleId, medalStoreId } = publishResult;
   console.log(`PublishResult: ${JSON.stringify(publishResult, null, 2)}`);
 
   // txs
   await interact_with_medal(publishResult, signer);
-
   await queries(medalModuleId, medalStoreId, addr);
   console.log("-----end-----");
 }
@@ -179,6 +233,6 @@ async function main() {
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error(`error: ${error.stack}`);
+    console.error(`error: ${JSON.stringify(error, null, 2)}, ${error.stack}`);
     process.exit(1);
   });
