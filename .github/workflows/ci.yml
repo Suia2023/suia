@@ -3,11 +3,14 @@ name: ci
 on: ["push", "pull_request", "workflow_dispatch"]
 
 env:
-  VERSION: 0.29.0
+  VERSION: 0.32.0
 
 jobs:
   test_and_demo:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [19.x]
     steps:
       - uses: actions/checkout@v3
       - name: Cache Binaries and move deps
@@ -37,6 +40,10 @@ jobs:
           git checkout devnet-${{ env.VERSION }}
           cd ../suia
       - run: task test
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
       - run: yarn install
       - run: cp .env.example .env
       - run: task demo-all
